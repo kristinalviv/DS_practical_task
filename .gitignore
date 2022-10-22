@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#gitignore
+.gitignore
+*.iml
+misc.xml
+modules.xml
+vcs.xml
+codeStyleConfig.xml
+Project.xml
