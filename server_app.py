@@ -1,7 +1,6 @@
 import socket
-import sys
-
-sys.path.append('/Users/khrystyna/Desktop/Ucu/DS_practical_task/DS_practical_task')
+# import sys
+# sys.path.append('/Users/khrystyna/Desktop/Ucu/DS_practical_task/DS_practical_task')
 from messages_app import MessageStore
 from messages_app import logging
 
@@ -40,6 +39,7 @@ class ServerApp:
 				if new_msg.msg in ['exit', 'end', 'quit', 'q']:
 					break
 				print(f'{new_msg}')
+				logging.info('Sending message to the client...')
 				conn.send(f'{new_msg}'.encode())
 				resp = conn.recv(1024).decode()
 				if not resp:
