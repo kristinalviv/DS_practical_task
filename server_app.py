@@ -1,6 +1,4 @@
 import socket
-# import sys
-# sys.path.append('/Users/khrystyna/Desktop/Ucu/DS_practical_task/DS_practical_task')
 from messages_app import MessageStore
 from messages_app import logging
 
