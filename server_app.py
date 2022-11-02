@@ -1,11 +1,31 @@
 import socket
-from messages_app import MessageStore
-from messages_app import logging
+import itertools
+import logging
+import json
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
 
 class ServerApp:
+	msg_id = itertools.count()
+	msg_lst = {}
+
 	def __init__(self):
 		self.host = '127.0.0.1'
+
+	def __str__(self):
+		return f'Server on {self.host} contain following messages: {ServerApp.msg_lst}.'
+
+	def __repr__(self):
+		return f'ServerApp({self.host}, {ServerApp.msg_lst})'
+
+	# @property
+	# def msg_lst(self):
+	# 	return self._msg_lst
+	#
+	# @msg_lst.setter
+	# def msg_lst(self, message_id, message):
+	# 	self._msg_lst.update({f'{message_id}': f'{message}'})
 
 	def create_server_socket(self, port=4040):
 		try:
@@ -30,24 +50,36 @@ class ServerApp:
 			server_socket.close()
 			conn.close()
 
-	def server_app(self, server_socket, conn):
+	def proceed_message(self, server_socket, conn):
 		while True:
 			try:
-				new_msg = MessageStore.create_message()
-				if new_msg.msg in ['exit', 'end', 'quit', 'q']:
+				message = input('Please enter your message here...:)')
+				if message in ['exit', 'end', 'quit', 'q']:
 					break
-				print(f'{new_msg}')
-				logging.info('Sending message to the client...')
-				conn.send(f'{new_msg}'.encode())
-				resp = conn.recv(1024).decode()
-				if not resp:
-					break
-				logging.info(f'{resp}')
+				else:
+					message_id = next(ServerApp.msg_id)
+					logging.info(f'Message successfully created - {message_id} - {message}')
+					ServerApp.msg_lst.update({f'{message_id}': f'{message}'})
+					with open('messages_app.json', 'w') as file:
+						file.write(json.dumps(ServerApp.msg_lst, indent=4))
+						file.write("\n")
+						file.close()
+					logging.info('Sending message to the client...')
+					conn.send(f'{message}'.encode())
+					resp = conn.recv(1024).decode()
+					if not resp:
+						break
+					logging.info(f'{resp}')
 			except Exception as e:
 				server_socket.close()
 				conn.close()
-				print(e)
 				print('Connection closed')
+				print(f'Could not save your message, {e}')
+
+
+def get_messages():
+	list = ServerApp.msg_lst
+	return list
 
 
 
@@ -56,7 +88,9 @@ if __name__ == "__main__":
 	server_socket = server.create_server_socket()
 	# listen_counts = 1
 	conn, address = server.connect_to_replicas(server_socket)
-	server.server_app(server_socket, conn)
+	ServerApp.proceed_message(server, server_socket, conn)
+	get_messages()
+	print(get_messages())
 	server_socket.close()
 	conn.close()
 	print('Connection closed')
