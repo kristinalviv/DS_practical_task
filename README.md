@@ -10,3 +10,8 @@ Following componenets are needed:
 - Simple HTTP-server for client interaction
 - Communication channel  
 - Docker
+
+
+To run the code, project should be imported and each component should be run in different consoles.
+Messages will be saved into messages.json file
+After quit, all messages will be listed on the both sides.
