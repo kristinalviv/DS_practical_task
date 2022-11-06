@@ -58,14 +58,20 @@ class ServerApp:
 					break
 				else:
 					message_id = next(ServerApp.msg_id)
-					logging.info(f'Message successfully created - {message_id} - {message}')
-					ServerApp.msg_lst.update({f'{message_id}': f'{message}'})
+					logging.info(f'Your message is - {message_id} - {message}')
+					logging.info('Sending message to the client...')
+					conn.send(f'{message}'.encode())
+					resp = conn.recv(1024).decode()
+					if not resp:
+						break
+					logging.info(f'{resp}')
+					ServerApp.msg_lst.update({message_id: f'{message}'})
 					with open('messages_app.json', 'w') as file:
 						file.write(json.dumps(ServerApp.msg_lst, indent=4))
 						file.write("\n")
 						file.close()
-					logging.info('Sending message to the client...')
-					conn.send(f'{message}'.encode())
+					logging.info('Message successfully created. Sending approval to the client...')
+					conn.send(f'Created id: {message_id}'.encode())
 					resp = conn.recv(1024).decode()
 					if not resp:
 						break

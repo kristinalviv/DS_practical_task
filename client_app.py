@@ -36,11 +36,21 @@ class Client:
 				print(f'Received from the server - {server_resp}')
 				logging.info(f'Client approved message!')
 				client_socket.send(
-					f"Approved following server's message ID from client side: '''{server_resp}'''".encode())
+					f"Approved following server's message from client side: '''{server_resp}'''".encode())
+				id_received = client_socket.recv(1024).decode()
+				logging.info(f'Received approval from the server - {id_received}')
 				with open('messages_app.json', 'r') as file:
-					stored_data = json.load(file)
+					stored_data = json.load(file, object_hook=lambda d: {int(k) if k.lstrip('-').isdigit() else k:v for k,v in d.items()})
 					file.close()
-				self.stored_messages.update(stored_data)
+				last_key_on_client = list(stored_data.keys())[-1]
+				print(last_key_on_client)
+				id_from_server = id_received.split().__getitem__(2)
+				print(id_from_server)
+				# print(self.stored_messages.keys()[-1])
+				if id_from_server == last_key_on_client:
+					self.stored_messages.update(stored_data)
+				client_socket.send(
+					f"Successfully saved {last_key_on_client} message ID on the client side".encode())
 		except Exception as e:
 			client_socket.close()
 			print('Connection closed')
