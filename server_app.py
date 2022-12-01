@@ -7,9 +7,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(me
 
 
 class ServerApp:
-	msg_id = itertools.count()
-	msg_lst = {}
-
 	def __init__(self):
 		self.host = '127.0.0.1'
 
@@ -18,6 +15,9 @@ class ServerApp:
 
 	def __repr__(self):
 		return f'ServerApp({self.host}, {ServerApp.msg_lst})'
+
+	msg_id = itertools.count(1)
+	msg_lst = {}
 
 	# @property
 	# def msg_lst(self):
@@ -58,34 +58,29 @@ class ServerApp:
 					break
 				else:
 					message_id = next(ServerApp.msg_id)
+					ServerApp.msg_lst.update({message_id: f'{message}'})
 					logging.info(f'Your message is - {message_id} - {message}')
 					logging.info('Sending message to the client...')
 					conn.send(f'{message}'.encode())
-					resp = conn.recv(1024).decode()
-					if not resp:
+					id_received = conn.recv(1024).decode()
+					if not id_received:
 						break
-					logging.info(f'{resp}')
-					ServerApp.msg_lst.update({message_id: f'{message}'})
-					with open('messages_app.json', 'w') as file:
-						file.write(json.dumps(ServerApp.msg_lst, indent=4))
-						file.write("\n")
-						file.close()
-					logging.info('Message successfully created. Sending approval to the client...')
-					conn.send(f'Created id: {message_id}'.encode())
-					resp = conn.recv(1024).decode()
-					if not resp:
-						break
-					logging.info(f'{resp}')
+					logging.info(f'{id_received}')
+					id_from_client = id_received.split().__getitem__(2)
+					if int(message_id) == int(id_from_client):
+						logging.info('Replication was performed successfully')
+					else:
+						logging.info(f"Replication has an error. Server's ID is {message_id}, " 
+									 f"while Client's ID is {id_from_client}")
 			except Exception as e:
 				server_socket.close()
 				conn.close()
 				print('Connection closed')
 				print(f'Could not save your message, {e}')
 
-
-def get_messages():
-	list = ServerApp.msg_lst
-	return list
+	@staticmethod
+	def get_messages():
+		return ServerApp.msg_lst
 
 
 
@@ -95,8 +90,7 @@ if __name__ == "__main__":
 	# listen_counts = 1
 	conn, address = server.connect_to_replicas(server_socket)
 	ServerApp.proceed_message(server, server_socket, conn)
-	get_messages()
-	print(get_messages())
+	print(ServerApp.get_messages())
 	server_socket.close()
 	conn.close()
 	print('Connection closed')

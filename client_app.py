@@ -2,6 +2,7 @@ import socket
 import json
 import server_app
 from server_app import logging
+import itertools
 
 
 class Client:
@@ -15,7 +16,8 @@ class Client:
 	def __repr__(self):
 		return f'Client({self.host}:{self.port})'
 
-	stored_messages = {}
+	cl_msg_id = itertools.count(1)
+	cl_msg_lst = {}
 
 	def create_connection(self, host, port):
 		try:
@@ -29,28 +31,16 @@ class Client:
 	def client_app(self, client_socket):
 		try:
 			while True:
-				server_resp = client_socket.recv(1024).decode()
-				if not server_resp:
+				server_message = client_socket.recv(1024).decode()
+				if not server_message:
 					logging.info('No message from the server side...')
 					break
-				print(f'Received from the server - {server_resp}')
-				logging.info(f'Client approved message!')
-				client_socket.send(
-					f"Approved following server's message from client side: '''{server_resp}'''".encode())
-				id_received = client_socket.recv(1024).decode()
-				logging.info(f'Received approval from the server - {id_received}')
-				with open('messages_app.json', 'r') as file:
-					stored_data = json.load(file, object_hook=lambda d: {int(k) if k.lstrip('-').isdigit() else k:v for k,v in d.items()})
-					file.close()
-				last_key_on_client = list(stored_data.keys())[-1]
-				print(last_key_on_client)
-				id_from_server = id_received.split().__getitem__(2)
-				print(id_from_server)
-				# print(self.stored_messages.keys()[-1])
-				if id_from_server == last_key_on_client:
-					self.stored_messages.update(stored_data)
-				client_socket.send(
-					f"Successfully saved {last_key_on_client} message ID on the client side".encode())
+				print(f'Received from the server - {server_message}')
+				cl_message_id = next(Client.cl_msg_id)
+				Client.cl_msg_lst.update({cl_message_id: f'{server_message}'})
+				print('Successfully saved message.')
+				logging.info(f'Client approved message! ID is: {cl_message_id}')
+				client_socket.send(f'Created id: {cl_message_id}'.encode())
 		except Exception as e:
 			client_socket.close()
 			print('Connection closed')
@@ -58,13 +48,17 @@ class Client:
 
 	@staticmethod
 	def close_connection(client_socket):
-		print(Client.stored_messages)
 		client_socket.close()
 		print('Connection closed')
+
+	@staticmethod
+	def get_messages():
+		return Client.cl_msg_lst
 
 
 if __name__ == "__main__":
 	client = Client()
 	client_socket = client.create_connection(client.host, client.port)
 	client.client_app(client_socket)
+	print(client.get_messages())
 	client.close_connection(client_socket)
