@@ -1,17 +1,18 @@
 import socket
 import json
-import server_app
-from server_app import logging
+import logging
 import itertools
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
 
 class Client:
-	def __init__(self, host='127.0.0.1', port=4040):
+	def __init__(self, host=socket.gethostbyname('server'), port=4040):
 		self.host = host
 		self.port = port
 
 	def __str__(self):
-		return f'Client on {self.host}:{self.port} contain following messages: {server_app.ServerApp.msg_lst}.'
+		return f'Client connects to  {self.host}:{self.port} contain following messages: {Client.cl_msg_lst}.'
 
 	def __repr__(self):
 		return f'Client({self.host}:{self.port})'
@@ -22,10 +23,13 @@ class Client:
 	def create_connection(self, host, port):
 		try:
 			client_socket = socket.socket()
+			print('created socket')
 			client_socket.connect((self.host, self.port))
+			print('now connected')
 			return client_socket
 		except Exception as e:
 			client_socket.close()
+			print('unable to connect')
 			print(e)
 
 	def client_app(self, client_socket):
@@ -57,8 +61,12 @@ class Client:
 
 
 if __name__ == "__main__":
+	print('started')
 	client = Client()
+	print('created client')
+	print(client)
 	client_socket = client.create_connection(client.host, client.port)
+	print(client_socket)
 	client.client_app(client_socket)
 	print(client.get_messages())
 	client.close_connection(client_socket)

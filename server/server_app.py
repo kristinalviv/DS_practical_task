@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(me
 
 class ServerApp:
 	def __init__(self):
-		self.host = '127.0.0.1'
+		self.host = socket.gethostbyname('server')
 
 	def __str__(self):
 		return f'Server on {self.host} contain following messages: {ServerApp.msg_lst}.'
@@ -31,6 +31,7 @@ class ServerApp:
 		try:
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
+			# server_socket.bind((self.host, port))
 			print(f'Server connection is open on {self.host} with {port} port.')
 			return server_socket
 		except Exception as e:
