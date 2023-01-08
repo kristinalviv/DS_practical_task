@@ -30,9 +30,9 @@ Server is up and running in container
 
 5. To build docker image run:docker build -f Dockerfile -t docker22de/devops:DS_client .
 
-6. To run docker container execute: docker run -it --name client --network test_new docker22de/devops:
-DS_client
+6. To run docker container execute: docker run -it --name client --network test_new docker22de/devops:DS_client
 
 *Connection successfully established and messages can be written to the server.*
 
 *'exit', 'end', 'quit', 'q' will stop app execution and all messages with id (from both server and client) will be shown*
+*client can list all messages if user will enter 'List()' input within 5 seconds timeouts*
