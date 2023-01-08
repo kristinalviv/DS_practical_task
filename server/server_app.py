@@ -31,7 +31,6 @@ class ServerApp:
 		try:
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
-			# server_socket.bind((self.host, port))
 			print(f'Server connection is open on {self.host} with {port} port.')
 			return server_socket
 		except Exception as e:
