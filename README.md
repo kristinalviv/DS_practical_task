@@ -33,6 +33,6 @@ Server is up and running in container
 6. To run docker container execute: docker run -it --network test_new docker22de/devops:
 DS_client
 
-###### Connection successfully established and messages can be written to the server.
+*Connection successfully established and messages can be written to the server.*
 
-'exit', 'end', 'quit', 'q' will stop app execution and all messages with id (from both server and client) will be shown
+*'exit', 'end', 'quit', 'q' will stop app execution and all messages with id (from both server and client) will be shown*
