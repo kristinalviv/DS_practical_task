@@ -35,8 +35,9 @@ class Client:
 	def client_app(self, client_socket):
 		try:
 			while True:
-				if input() == 'List()':
-					print(client.get_messages())
+				if input():
+					if input() == 'List()':
+						print(client.get_messages())
 				else:
 					server_message = client_socket.recv(1024).decode()
 					if not server_message:
