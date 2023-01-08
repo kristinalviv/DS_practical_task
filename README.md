@@ -35,3 +35,4 @@ Server is up and running in container
 *Connection successfully established and messages can be written to the server.*
 
 *'exit', 'end', 'quit', 'q' will stop app execution and all messages with id (from both server and client) will be shown*
+*client can list all messages if user will enter 'List()' input within 5 seconds timeouts*

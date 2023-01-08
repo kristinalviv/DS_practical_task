@@ -2,6 +2,8 @@ import socket
 import json
 import logging
 import itertools
+import time
+from inputimeout import inputimeout
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
@@ -35,20 +37,22 @@ class Client:
 	def client_app(self, client_socket):
 		try:
 			while True:
-				if input():
-					if input() == 'List()':
+				try:
+					input_value = inputimeout(prompt='If you want to view all messages, type "List" here.. ', timeout=5)
+					if input_value == 'List()':
 						print(client.get_messages())
-				else:
-					server_message = client_socket.recv(1024).decode()
-					if not server_message:
-						logging.info('No message from the server side...')
-						break
-					print(f'Received from the server - {server_message}')
-					cl_message_id = next(Client.cl_msg_id)
-					Client.cl_msg_lst.update({cl_message_id: f'{server_message}'})
-					print('Successfully saved message.')
-					logging.info(f'Client approved message! ID is: {cl_message_id}')
-					client_socket.send(f'Created id: {cl_message_id}'.encode())
+				except Exception as e:
+					print(e)
+				server_message = client_socket.recv(1024).decode()
+				if not server_message:
+					logging.info('No message from the server side...')
+					break
+				print(f'Received from the server - {server_message}')
+				cl_message_id = next(Client.cl_msg_id)
+				Client.cl_msg_lst.update({cl_message_id: f'{server_message}'})
+				print('Successfully saved message.')
+				logging.info(f'Client approved message! ID is: {cl_message_id}')
+				client_socket.send(f'Created id: {cl_message_id}'.encode())
 		except Exception as e:
 			client_socket.close()
 			print('Connection closed')
