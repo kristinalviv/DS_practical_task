@@ -33,7 +33,9 @@ Server is up and running in container
 6. To run docker containers execute: 
 
 docker run -it --name client1 --network test_new docker22de/devops:DS_client
+
 docker run -it --name client2 --network test_new docker22de/devops:DS_client
+
 docker run -it --name client3 --network test_new docker22de/devops:DS_client
 
 *Connection successfully established and messages can be written to the server.*
