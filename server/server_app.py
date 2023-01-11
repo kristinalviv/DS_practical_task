@@ -37,20 +37,23 @@ class ServerApp:
 			print(e)
 			server_socket.close()
 
-	def connect_to_replicas(self, server_socket, listen_counts=1):
+	def connect_to_replicas(self, server_socket, listen_counts=3):
 		try:
-			self.server_socket = server_socket
-			self.listen_counts = listen_counts
+			connections = []
 			server_socket.listen(listen_counts)
-			conn, address = server_socket.accept()
-			print(f'Address of connected replica: {str(address)}')
+			while listen_counts > 0:
+				conn, address = server_socket.accept()
+				listen_counts -= 1
+				connections.append(conn)
+				print(f'Address of connected replica: {str(address)}')
+				print(connections)
 			return conn, address
 		except Exception as e:
 			print(e)
 			server_socket.close()
 			conn.close()
 
-	def proceed_message(self, server_socket, conn):
+	def proceed_message(self, server_socket, connections):
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
@@ -61,20 +64,23 @@ class ServerApp:
 					ServerApp.msg_lst.update({message_id: f'{message}'})
 					logging.info(f'Your message is - {message_id} - {message}')
 					logging.info('Sending message to the client...')
-					conn.send(f'{message}'.encode())
-					id_received = conn.recv(1024).decode()
-					if not id_received:
-						break
-					logging.info(f'{id_received}')
-					id_from_client = id_received.split().__getitem__(2)
-					if int(message_id) == int(id_from_client):
-						logging.info('Replication was performed successfully')
-					else:
-						logging.info(f"Replication has an error. Server's ID is {message_id}, " 
-									 f"while Client's ID is {id_from_client}")
+					for unique_conn in connections:
+						unique_conn.send(f'{message}'.encode())
+					logging.info('Successfully sent to clients...')
+					# id_received = conn.recv(1024).decode()
+					# if not id_received:
+					# 	break
+					# logging.info(f'{id_received}')
+					# id_from_client = id_received.split().__getitem__(2)
+					# if int(message_id) == int(id_from_client):
+					# 	logging.info('Replication was performed successfully')
+					# else:
+					# 	logging.info(f"Replication has an error. Server's ID is {message_id}, "
+					# 				 f"while Client's ID is {id_from_client}")
 			except Exception as e:
 				server_socket.close()
-				conn.close()
+				for unique_conn in connections:
+					unique_conn.close()
 				print('Connection closed')
 				print(f'Could not save your message, {e}')
 
@@ -88,9 +94,10 @@ if __name__ == "__main__":
 	server = ServerApp()
 	server_socket = server.create_server_socket()
 	# listen_counts = 1
-	conn, address = server.connect_to_replicas(server_socket)
-	ServerApp.proceed_message(server, server_socket, conn)
+	connections, address = server.connect_to_replicas(server_socket)
+	server.proceed_message(server_socket, connections)
 	print(ServerApp.get_messages())
 	server_socket.close()
-	conn.close()
+	for unique_conn in connections:
+		unique_conn.close()
 	print('Connection closed')
