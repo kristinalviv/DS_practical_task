@@ -47,7 +47,7 @@ class ServerApp:
 				connections.append(conn)
 				print(f'Address of connected replica: {str(address)}')
 				print(connections)
-			return conn, address
+			return connections, address
 		except Exception as e:
 			print(e)
 			server_socket.close()
