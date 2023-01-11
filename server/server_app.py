@@ -51,7 +51,8 @@ class ServerApp:
 		except Exception as e:
 			print(e)
 			server_socket.close()
-			conn.close()
+			for unique_conn in connections:
+				unique_conn.close()
 
 	def proceed_message(self, server_socket, connections):
 		while True:
