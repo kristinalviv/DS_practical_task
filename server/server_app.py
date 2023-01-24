@@ -47,7 +47,7 @@ class ServerApp:
 				connections.append(conn)
 				print(f'Address of connected replica: {str(address)}')
 				print(connections)
-			return connections, address
+			return connections, address, listen_counts
 		except Exception as e:
 			print(e)
 			server_socket.close()
@@ -55,6 +55,7 @@ class ServerApp:
 				unique_conn.close()
 
 	def proceed_message(self, server_socket, connections):
+		write_concern = listen_counts - 1
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
@@ -68,16 +69,32 @@ class ServerApp:
 					for unique_conn in connections:
 						unique_conn.send(f'{message}'.encode())
 					logging.info('Successfully sent to clients...')
-					# id_received = conn.recv(1024).decode()
-					# if not id_received:
-					# 	break
-					# logging.info(f'{id_received}')
-					# id_from_client = id_received.split().__getitem__(2)
-					# if int(message_id) == int(id_from_client):
-					# 	logging.info('Replication was performed successfully')
-					# else:
-					# 	logging.info(f"Replication has an error. Server's ID is {message_id}, "
-					# 				 f"while Client's ID is {id_from_client}")
+					answer_count = 0
+					logging.info(f'Write concern is {write_concern}.')
+					logging.info(f'Starting receiving answer from client nodes. Received answer is {answer_count}.')
+					for number, unique_conn in enumerate(connections, start=1):
+						id_received = unique_conn.recv(1024).decode()
+						logging.info(f'Received ID from {number} node is {id_received}')
+						id_from_client = id_received.split().__getitem__(2)
+						if int(message_id) == int(id_from_client):
+							logging.info(f'Replication to {number} node was performed successfully.')
+						else:
+							logging.info(f"Replication to {number} node has an error. Server's ID is {message_id}, "
+										 f"while Client's ID is {id_from_client}")
+						answer_count += 1
+					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
+					if answer_count >= (listen_counts - 1):
+						logging.info('Write concern fulfilled. ')
+			# id_received = conn.recv(1024).decode()
+			# if not id_received:
+			# 	break
+			# logging.info(f'{id_received}')
+			# id_from_client = id_received.split().__getitem__(2)
+			# if int(message_id) == int(id_from_client):
+			# 	logging.info('Replication was performed successfully')
+			# else:
+			# 	logging.info(f"Replication has an error. Server's ID is {message_id}, "
+			# 				 f"while Client's ID is {id_from_client}")
 			except Exception as e:
 				server_socket.close()
 				for unique_conn in connections:
@@ -90,12 +107,11 @@ class ServerApp:
 		return ServerApp.msg_lst
 
 
-
 if __name__ == "__main__":
 	server = ServerApp()
 	server_socket = server.create_server_socket()
 	# listen_counts = 1
-	connections, address = server.connect_to_replicas(server_socket)
+	connections, address, listen_counts = server.connect_to_replicas(server_socket)
 	server.proceed_message(server_socket, connections)
 	print(ServerApp.get_messages())
 	server_socket.close()
