@@ -52,7 +52,7 @@ class Client:
 				Client.cl_msg_lst.update({cl_message_id: f'{server_message}'})
 				print('Successfully saved message.')
 				logging.info(f'Client approved message! ID is: {cl_message_id}')
-				client_socket.send(f'Created id: {cl_message_id}'.encode())
+				client_socket.send(f'{cl_message_id}'.encode())
 		except Exception as e:
 			client_socket.close()
 			print('Connection closed')
