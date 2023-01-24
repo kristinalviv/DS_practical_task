@@ -55,7 +55,7 @@ class ServerApp:
 				unique_conn.close()
 
 	def proceed_message(self, server_socket, connections):
-		write_concern = listen_counts - 1
+		write_concern = (listen_counts - 1)
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
@@ -63,7 +63,7 @@ class ServerApp:
 					break
 				else:
 					message_id = next(ServerApp.msg_id)
-					ServerApp.msg_lst.update({message_id: f'{message}'})
+					# ServerApp.msg_lst.update({message_id: f'{message}'})
 					logging.info(f'Your message is - {message_id} - {message}')
 					logging.info('Sending message to the client...')
 					for unique_conn in connections:
@@ -75,7 +75,7 @@ class ServerApp:
 					for number, unique_conn in enumerate(connections, start=1):
 						id_received = unique_conn.recv(1024).decode()
 						logging.info(f'Received ID from {number} node is {id_received}')
-						id_from_client = id_received.split().__getitem__(2)
+						id_from_client = id_received.split().__getitem__(0)
 						if int(message_id) == int(id_from_client):
 							logging.info(f'Replication to {number} node was performed successfully.')
 						else:
@@ -85,6 +85,7 @@ class ServerApp:
 					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					if answer_count >= (listen_counts - 1):
 						logging.info('Write concern fulfilled. ')
+						ServerApp.msg_lst.update({message_id: f'{message}'})
 			# id_received = conn.recv(1024).decode()
 			# if not id_received:
 			# 	break
