@@ -87,12 +87,15 @@ class ServerApp:
 							logging.info(e)
 							logging.info(f'Retry is needed for this message.')
 					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
-					if answer_count >= (listen_counts - 1):
+					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
 						ServerApp.msg_lst.update({message_id: f'{message}'})
 						for unique_conn in connections:
 							unique_conn.send(f'Approved'.encode())
-					logging.info('Successfully sent approval to clients...')
+						logging.info('Successfully sent approval to clients...')
+					else:
+						logging.info('Write concern was NOT fulfilled. Message was not saved')
+
 
 			# id_received = conn.recv(1024).decode()
 			# if not id_received:

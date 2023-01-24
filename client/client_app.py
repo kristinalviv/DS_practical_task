@@ -73,7 +73,7 @@ class Client:
 
 	@staticmethod
 	def get_messages():
-		return Client.cl_msg_lst
+		return Client.cl_msg_lst_final
 
 
 if __name__ == "__main__":
