@@ -55,7 +55,7 @@ class ServerApp:
 				unique_conn.close()
 
 	def proceed_message(self, server_socket, connections):
-		write_concern = (listen_counts - 1)
+		write_concern = 2
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
@@ -73,19 +73,27 @@ class ServerApp:
 					logging.info(f'Write concern is {write_concern}.')
 					logging.info(f'Starting receiving answer from client nodes. Received answer is {answer_count}.')
 					for number, unique_conn in enumerate(connections, start=1):
-						id_received = unique_conn.recv(1024).decode()
-						logging.info(f'Received ID from {number} node is {id_received}')
-						id_from_client = id_received.split().__getitem__(0)
-						if int(message_id) == int(id_from_client):
-							logging.info(f'Replication to {number} node was performed successfully.')
-						else:
-							logging.info(f"Replication to {number} node has an error. Server's ID is {message_id}, "
-										 f"while Client's ID is {id_from_client}")
-						answer_count += 1
+						try:
+							id_received = unique_conn.recv(1024).decode()
+							logging.info(f'Received ID from {number} node is {id_received}')
+							id_from_client = id_received.split().__getitem__(0)
+							if int(message_id) == int(id_from_client):
+								logging.info(f'Replication to {number} node was performed successfully.')
+							else:
+								logging.info(f"Replication to {number} node has an error. Server's ID is {message_id}, "
+											 f"while Client's ID is {id_from_client}")
+							answer_count += 1
+						except Exception as e:
+							logging.info(e)
+							logging.info(f'Retry is needed for this message.')
 					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					if answer_count >= (listen_counts - 1):
 						logging.info('Write concern fulfilled. ')
 						ServerApp.msg_lst.update({message_id: f'{message}'})
+						for unique_conn in connections:
+							unique_conn.send(f'Approved'.encode())
+					logging.info('Successfully sent approval to clients...')
+
 			# id_received = conn.recv(1024).decode()
 			# if not id_received:
 			# 	break

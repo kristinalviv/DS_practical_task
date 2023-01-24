@@ -21,6 +21,7 @@ class Client:
 
 	cl_msg_id = itertools.count(1)
 	cl_msg_lst = {}
+	cl_msg_lst_final = {}
 
 	def create_connection(self, host, port):
 		try:
@@ -50,9 +51,16 @@ class Client:
 				print(f'Received from the server - {server_message}')
 				cl_message_id = next(Client.cl_msg_id)
 				Client.cl_msg_lst.update({cl_message_id: f'{server_message}'})
-				print('Successfully saved message.')
+				print('Successfully pre-saved message.')
 				logging.info(f'Client approved message! ID is: {cl_message_id}')
 				client_socket.send(f'{cl_message_id}'.encode())
+				final_approval = client_socket.recv(1024).decode()
+				if not final_approval:
+					logging.info('No approval received from the server. Skipping it...')
+					break
+				print(f'Received {final_approval} message from the server.')
+				Client.cl_msg_lst_final.update({cl_message_id: f'{server_message}'})
+				print(f'Message successfully saved')
 		except Exception as e:
 			client_socket.close()
 			print('Connection closed')
