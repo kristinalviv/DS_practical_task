@@ -29,6 +29,8 @@ class ServerApp:
 
 	def create_server_socket(self, port=4040):
 		try:
+			socket.setdefaulttimeout(20) # set 60 seconds timeout
+			print(socket.getdefaulttimeout())
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
 			print(f'Server connection is open on {self.host} with {port} port.')
@@ -41,13 +43,14 @@ class ServerApp:
 		try:
 			connections = []
 			server_socket.listen(listen_counts)
+			print(socket.getdefaulttimeout())
 			while listen_counts > 0:
 				conn, address = server_socket.accept()
 				listen_counts -= 1
 				connections.append(conn)
 				print(f'Address of connected replica: {str(address)}')
 				print(connections)
-			return connections, address
+			return connections, address, listen_counts
 		except Exception as e:
 			print(e)
 			server_socket.close()
@@ -55,6 +58,7 @@ class ServerApp:
 				unique_conn.close()
 
 	def proceed_message(self, server_socket, connections):
+		write_concern = 3
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
@@ -62,22 +66,53 @@ class ServerApp:
 					break
 				else:
 					message_id = next(ServerApp.msg_id)
-					ServerApp.msg_lst.update({message_id: f'{message}'})
+					# ServerApp.msg_lst.update({message_id: f'{message}'})
 					logging.info(f'Your message is - {message_id} - {message}')
 					logging.info('Sending message to the client...')
 					for unique_conn in connections:
 						unique_conn.send(f'{message}'.encode())
 					logging.info('Successfully sent to clients...')
-					# id_received = conn.recv(1024).decode()
-					# if not id_received:
-					# 	break
-					# logging.info(f'{id_received}')
-					# id_from_client = id_received.split().__getitem__(2)
-					# if int(message_id) == int(id_from_client):
-					# 	logging.info('Replication was performed successfully')
-					# else:
-					# 	logging.info(f"Replication has an error. Server's ID is {message_id}, "
-					# 				 f"while Client's ID is {id_from_client}")
+					answer_count = 0
+					logging.info(f'Write concern is {write_concern}.')
+					logging.info(f'Starting receiving answer from client nodes. Received answer is {answer_count}.')
+					print(socket.getdefaulttimeout())
+					for number, unique_conn in enumerate(connections, start=1):
+						try:
+							id_received = unique_conn.recv(1024).decode()
+							logging.info(f'Received ID from {number} node is {id_received}')
+							id_from_client = id_received.split().__getitem__(0)
+							if int(message_id) == int(id_from_client):
+								logging.info(f'Replication to {number} node was performed successfully.')
+							else:
+								logging.info(f"Replication to {number} node has an error. Server's ID is {message_id}, "
+											 f"while Client's ID is {id_from_client}")
+							answer_count += 1
+						except socket.timeout as e:
+							logging.info(e)
+							logging.info(f'Did not save this message. Timeout occurs!')
+						except Exception as e:
+							logging.info(e)
+					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
+					if answer_count >= write_concern:
+						logging.info('Write concern fulfilled. ')
+						ServerApp.msg_lst.update({message_id: f'{message}'})
+						for unique_conn in connections:
+							unique_conn.send(f'Approved'.encode())
+						logging.info('Successfully sent approval to clients...')
+					else:
+						logging.info('Write concern was NOT fulfilled. Message was not saved')
+
+
+			# id_received = conn.recv(1024).decode()
+			# if not id_received:
+			# 	break
+			# logging.info(f'{id_received}')
+			# id_from_client = id_received.split().__getitem__(2)
+			# if int(message_id) == int(id_from_client):
+			# 	logging.info('Replication was performed successfully')
+			# else:
+			# 	logging.info(f"Replication has an error. Server's ID is {message_id}, "
+			# 				 f"while Client's ID is {id_from_client}")
 			except Exception as e:
 				server_socket.close()
 				for unique_conn in connections:
@@ -90,12 +125,11 @@ class ServerApp:
 		return ServerApp.msg_lst
 
 
-
 if __name__ == "__main__":
 	server = ServerApp()
 	server_socket = server.create_server_socket()
 	# listen_counts = 1
-	connections, address = server.connect_to_replicas(server_socket)
+	connections, address, listen_counts = server.connect_to_replicas(server_socket)
 	server.proceed_message(server_socket, connections)
 	print(ServerApp.get_messages())
 	server_socket.close()
