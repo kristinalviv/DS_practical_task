@@ -45,8 +45,6 @@ class ServerApp:
 			connections = []
 			server_socket.listen(listen_counts)
 			print(server_socket.gettimeout())
-			server_socket.settimeout(60) # set 60 seconds timeout
-			print(server_socket.gettimeout())
 			while listen_counts > 0:
 				conn, address = server_socket.accept()
 				listen_counts -= 1
@@ -78,6 +76,7 @@ class ServerApp:
 					answer_count = 0
 					logging.info(f'Write concern is {write_concern}.')
 					logging.info(f'Starting receiving answer from client nodes. Received answer is {answer_count}.')
+					print('Timeout is', server_socket.gettimeout())
 					for number, unique_conn in enumerate(connections, start=1):
 						try:
 							id_received = unique_conn.recv(1024).decode()
