@@ -30,6 +30,9 @@ class ServerApp:
 	def create_server_socket(self, port=4040):
 		try:
 			server_socket = socket.socket()
+			print(server_socket.gettimeout())
+			server_socket.settimeout(60) # set 60 seconds timeout
+			print(server_socket.gettimeout())
 			server_socket.bind((self.host, port))
 			print(f'Server connection is open on {self.host} with {port} port.')
 			return server_socket
@@ -41,7 +44,9 @@ class ServerApp:
 		try:
 			connections = []
 			server_socket.listen(listen_counts)
+			print(server_socket.gettimeout())
 			server_socket.settimeout(60) # set 60 seconds timeout
+			print(server_socket.gettimeout())
 			while listen_counts > 0:
 				conn, address = server_socket.accept()
 				listen_counts -= 1
