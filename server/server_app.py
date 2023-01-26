@@ -41,6 +41,7 @@ class ServerApp:
 		try:
 			connections = []
 			server_socket.listen(listen_counts)
+			server_socket.settimeout(60) # set 60 seconds timeout
 			while listen_counts > 0:
 				conn, address = server_socket.accept()
 				listen_counts -= 1
@@ -55,7 +56,7 @@ class ServerApp:
 				unique_conn.close()
 
 	def proceed_message(self, server_socket, connections):
-		write_concern = 2
+		write_concern = 3
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
@@ -83,9 +84,11 @@ class ServerApp:
 								logging.info(f"Replication to {number} node has an error. Server's ID is {message_id}, "
 											 f"while Client's ID is {id_from_client}")
 							answer_count += 1
+						except socket.timeout as e:
+							logging.info(e)
+							logging.info(f'Did not save this message. Timeout occurs!')
 						except Exception as e:
 							logging.info(e)
-							logging.info(f'Retry is needed for this message.')
 					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
