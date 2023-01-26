@@ -30,7 +30,6 @@ class ServerApp:
 	def create_server_socket(self, port=4040):
 		try:
 			socket.setdefaulttimeout(20) # set 60 seconds timeout
-			print(socket.gettimeout())
 			print(socket.getdefaulttimeout())
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
@@ -44,7 +43,6 @@ class ServerApp:
 		try:
 			connections = []
 			server_socket.listen(listen_counts)
-			print(socket.gettimeout())
 			print(socket.getdefaulttimeout())
 			while listen_counts > 0:
 				conn, address = server_socket.accept()
@@ -77,7 +75,6 @@ class ServerApp:
 					answer_count = 0
 					logging.info(f'Write concern is {write_concern}.')
 					logging.info(f'Starting receiving answer from client nodes. Received answer is {answer_count}.')
-					print(socket.gettimeout())
 					print(socket.getdefaulttimeout())
 					for number, unique_conn in enumerate(connections, start=1):
 						try:
