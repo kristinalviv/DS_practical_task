@@ -38,6 +38,19 @@ docker run -it --name client2 --network test_new docker22de/devops:DS_client
 
 docker run -it --name client3 --network test_new docker22de/devops:DS_client
 
+7. To test write concern feature (write concern is 3) - enter the following command into new terminal 
+
+docker network disconnect NETWORK_NAME CONTAINER_NAME
+e.g.(docker network disconnect test_new 37634569c10a)
+
+After that send any message to the server, message won't be saved due to timeout. (Neither on server, nor on any client)
+
+To restore connection with client node enter command (docker network connect NETWORK_NAME CONTAINER_NAME)
+
+Following message will be saved.
+
+
+
 *Connection successfully established and messages can be written to the server.*
 
 *'exit', 'end', 'quit', 'q' will stop app execution and all messages with id (from both server and client) will be shown*
