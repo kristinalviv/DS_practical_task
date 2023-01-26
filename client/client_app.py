@@ -58,9 +58,10 @@ class Client:
 				if not final_approval:
 					logging.info('No approval received from the server. Skipping it...')
 					break
-				print(f'Received {final_approval} message from the server.')
-				Client.cl_msg_lst_final.update({cl_message_id: f'{server_message}'})
-				print(f'Message successfully saved')
+				elif final_approval:
+					print(f'Received {final_approval} message from the server.')
+					Client.cl_msg_lst_final.update({cl_message_id: f'{server_message}'})
+					print(f'Message successfully saved')
 		except Exception as e:
 			client_socket.close()
 			print('Connection closed')
