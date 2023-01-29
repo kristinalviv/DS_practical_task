@@ -26,6 +26,7 @@ class Client:
 
 	def create_connection(self, host, port):
 		try:
+			socket.setdefaulttimeout(20)
 			client_socket = socket.socket()
 			client_socket.connect((self.host, self.port))
 			return client_socket
