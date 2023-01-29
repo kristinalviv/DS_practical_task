@@ -26,9 +26,7 @@ class Client:
 	def create_connection(self, host, port):
 		try:
 			client_socket = socket.socket()
-			print('created socket')
 			client_socket.connect((self.host, self.port))
-			print('now connected')
 			return client_socket
 		except Exception as e:
 			client_socket.close()
@@ -78,12 +76,9 @@ class Client:
 
 
 if __name__ == "__main__":
-	print('started')
 	client = Client()
-	print('created client')
 	print(client)
 	client_socket = client.create_connection(client.host, client.port)
-	print(client_socket)
 	client.client_app(client_socket)
 	print(client.get_messages())
 	client.close_connection(client_socket)

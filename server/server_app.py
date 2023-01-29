@@ -1,7 +1,6 @@
 import socket
 import itertools
 import logging
-import json
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
@@ -19,13 +18,6 @@ class ServerApp:
 	msg_id = itertools.count(1)
 	msg_lst = {}
 
-	# @property
-	# def msg_lst(self):
-	# 	return self._msg_lst
-	#
-	# @msg_lst.setter
-	# def msg_lst(self, message_id, message):
-	# 	self._msg_lst.update({f'{message_id}': f'{message}'})
 
 	def create_server_socket(self, port=4040):
 		try:
@@ -101,18 +93,6 @@ class ServerApp:
 						logging.info('Successfully sent approval to clients...')
 					else:
 						logging.info('Write concern was NOT fulfilled. Message was not saved')
-
-
-			# id_received = conn.recv(1024).decode()
-			# if not id_received:
-			# 	break
-			# logging.info(f'{id_received}')
-			# id_from_client = id_received.split().__getitem__(2)
-			# if int(message_id) == int(id_from_client):
-			# 	logging.info('Replication was performed successfully')
-			# else:
-			# 	logging.info(f"Replication has an error. Server's ID is {message_id}, "
-			# 				 f"while Client's ID is {id_from_client}")
 			except Exception as e:
 				server_socket.close()
 				for unique_conn in connections:
@@ -128,7 +108,6 @@ class ServerApp:
 if __name__ == "__main__":
 	server = ServerApp()
 	server_socket = server.create_server_socket()
-	# listen_counts = 1
 	connections, address, listen_counts = server.connect_to_replicas(server_socket)
 	server.proceed_message(server_socket, connections)
 	print(ServerApp.get_messages())
