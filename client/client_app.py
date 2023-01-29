@@ -22,6 +22,7 @@ class Client:
 	cl_msg_id = itertools.count(1)
 	cl_msg_lst = {}
 	cl_msg_lst_final = {}
+	cl_msg_id_final = itertools.count(1)
 
 	def create_connection(self, host, port):
 		try:
@@ -58,7 +59,8 @@ class Client:
 					break
 				elif final_approval:
 					print(f'Received {final_approval} message from the server.')
-					Client.cl_msg_lst_final.update({cl_message_id: f'{server_message}'})
+					final_cl_message_id = next(Client.cl_msg_id_final)
+					Client.cl_msg_lst_final.update({final_cl_message_id: f'{server_message}'})
 					print(f'Message successfully saved')
 		except Exception as e:
 			client_socket.close()

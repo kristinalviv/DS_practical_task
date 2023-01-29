@@ -92,6 +92,7 @@ class ServerApp:
 							unique_conn.send(f'Approved'.encode())
 						logging.info('Successfully sent approval to clients...')
 					else:
+						message_id -= 1
 						logging.info('Write concern was NOT fulfilled. Message was not saved')
 			except Exception as e:
 				server_socket.close()
