@@ -16,6 +16,7 @@ class ServerApp:
 		return f'ServerApp({self.host}, {ServerApp.msg_lst})'
 
 	msg_id = itertools.count(1)
+	msg_id_final = itertools.count(1)
 	msg_lst = {}
 
 
@@ -87,12 +88,11 @@ class ServerApp:
 					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
-						ServerApp.msg_lst.update({message_id: f'{message}'})
+						ServerApp.msg_lst.update({next(ServerApp.msg_id_final): f'{message}'})
 						for unique_conn in connections:
 							unique_conn.send(f'Approved'.encode())
 						logging.info('Successfully sent approval to clients...')
 					else:
-						message_id -= 1
 						logging.info('Write concern was NOT fulfilled. Message was not saved')
 			except Exception as e:
 				server_socket.close()
