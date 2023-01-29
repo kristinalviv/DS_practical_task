@@ -2,7 +2,7 @@ import socket
 import json
 import logging
 import itertools
-import time
+from datetime import datetime, timedelta
 from inputimeout import inputimeout
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
@@ -26,7 +26,6 @@ class Client:
 
 	def create_connection(self, host, port):
 		try:
-			socket.setdefaulttimeout(20)
 			client_socket = socket.socket()
 			client_socket.connect((self.host, self.port))
 			return client_socket
@@ -45,6 +44,7 @@ class Client:
 				except Exception as e:
 					print(e)
 				server_message = client_socket.recv(1024).decode()
+				max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=20)
 				if not server_message:
 					logging.info('No message from the server side...')
 					break
@@ -61,7 +61,7 @@ class Client:
 					final_cl_message_id = next(Client.cl_msg_id_final)
 					Client.cl_msg_lst_final.update({final_cl_message_id: f'{server_message}'})
 					print(f'Message successfully saved')
-				else:
+				elif datetime.now() > max_message_time:
 					logging.info('No approval received from the server. Skipping it...')
 					break
 		except Exception as e:
