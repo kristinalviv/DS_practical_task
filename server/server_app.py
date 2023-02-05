@@ -61,10 +61,9 @@ class ServerApp:
 				retry += 1
 				print(f'Starting {retry} retry.')
 				print(f'Max retry is: {max_retry}')
-				if retry < max_retry:
+				print(retry < max_retry)
+				while retry < max_retry:
 					continue
-				else:
-					break
 			except Exception as e:
 				logging.info(e)
 		logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
