@@ -1,7 +1,6 @@
 import socket
 import itertools
 import logging
-import copy
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
@@ -61,7 +60,7 @@ class ServerApp:
 				else:
 					# message_id = next(ServerApp.msg_id)
 					# ServerApp.msg_lst.update({message_id: f'{message}'})
-					prior_message_id = copy.copy(ServerApp.msg_id_final) + 1
+					prior_message_id = (ServerApp.msg_id_final.__reduce__()[1][0]) + 1
 					logging.info(f'Your message is - {prior_message_id} - {message}')
 					logging.info('Sending message to the client...')
 					for unique_conn in connections:
