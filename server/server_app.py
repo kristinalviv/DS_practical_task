@@ -63,7 +63,8 @@ class ServerApp:
 					prior_message_id = []
 					[]
 					# prior_message_id = (ServerApp.msg_id_final.__reduce__()[1][0]) + 1
-					prior_message_id = [(ServerApp.msg_id_final.__reduce__()[1][0]) + 1 if ServerApp.msg_id_final > 1 else ServerApp.msg_id_final ]
+					servers_id = ServerApp.msg_id_final.__reduce__()[1][0]
+					prior_message_id = [servers_id + 1 if servers_id > 1 else servers_id]
 					logging.info(f'Your message is - {prior_message_id} - {message}')
 					logging.info('Sending message to the client...')
 					for unique_conn in connections:
