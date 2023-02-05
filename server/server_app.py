@@ -71,6 +71,8 @@ class ServerApp:
 					id_received = unique_conn.recv(1024).decode()
 					logging.info(f'Received ID from {number} node is {id_received}')
 					answer_count += 1
+					if answer_count == write_concern:
+						break
 			except socket.timeout as e:
 				logging.info(e)
 				logging.info(f'Did not save this message. Timeout occurs!')
