@@ -46,9 +46,7 @@ class ServerApp:
 			for unique_conn in connections:
 				unique_conn.close()
 
-	def message_approval(self, connections):
-		max_retry = 2
-		answer_count = 0
+	def message_approval(self, connections, max_retry, answer_count=0):
 		while max_retry > 0:
 			print("I'm here")
 			for number, unique_conn in enumerate(connections, start=1):
@@ -67,7 +65,7 @@ class ServerApp:
 			logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 			return answer_count
 
-	def proceed_message(self, server_socket, connections):
+	def proceed_message(self, server_socket, connections, max_retry=2):
 		write_concern = 3
 		while True:
 			try:
@@ -95,7 +93,7 @@ class ServerApp:
 					# 		logging.info(e)
 					# logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					# maybe it should be method
-					answer_count = ServerApp.message_approval(server_socket, connections)
+					answer_count = ServerApp.message_approval(connections, max_retry)
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
 						ServerApp.msg_lst.update({next(ServerApp.msg_id): f'{message}'})
