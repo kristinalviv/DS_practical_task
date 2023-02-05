@@ -59,7 +59,7 @@ class ServerApp:
 					logging.info(f'Did not save this message. Timeout occurs!')
 					max_retry -= 1
 					print(max_retry)
-					break
+					continue
 				except Exception as e:
 					logging.info(e)
 			logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
