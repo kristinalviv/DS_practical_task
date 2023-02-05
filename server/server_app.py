@@ -24,7 +24,7 @@ class ServerApp:
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
 			print(f'Server connection is open on {self.host} with {port} port.')
-			return socket, server_socket
+			return server_socket
 		except Exception as e:
 			print(e)
 			server_socket.close()
@@ -46,7 +46,7 @@ class ServerApp:
 			for unique_conn in connections:
 				unique_conn.close()
 
-	def message_approval(self, socket, connections):
+	def message_approval(self, connections):
 		max_retry = 2
 		answer_count = 0
 		while max_retry > 0:
@@ -62,10 +62,12 @@ class ServerApp:
 					max_retry -= 1
 					print(max_retry)
 					break
+				except Exception as e:
+					logging.info(e)
 			logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 			return answer_count
 
-	def proceed_message(self, socket, server_socket, connections):
+	def proceed_message(self, server_socket, connections):
 		write_concern = 3
 		while True:
 			try:
@@ -116,9 +118,9 @@ class ServerApp:
 
 if __name__ == "__main__":
 	server = ServerApp()
-	socket, server_socket = server.create_server_socket()
+	server_socket = server.create_server_socket()
 	connections, address, listen_counts = server.connect_to_replicas(server_socket)
-	server.proceed_message(socket, server_socket, connections)
+	server.proceed_message(server_socket, connections)
 	print(ServerApp.get_messages())
 	server_socket.close()
 	for unique_conn in connections:
