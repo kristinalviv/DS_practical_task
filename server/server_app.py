@@ -62,8 +62,6 @@ class ServerApp:
 					max_retry -= 1
 					print(max_retry)
 					break
-				except Exception as e:
-					logging.info(e)
 			logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 			return answer_count
 
@@ -104,7 +102,6 @@ class ServerApp:
 						logging.info('Successfully sent approval to clients...')
 					else:
 						logging.info('Write concern was NOT fulfilled. Message was not saved')
-						logging.info(f'Starting {retry} retry')
 			except Exception as e:
 				server_socket.close()
 				for unique_conn in connections:
