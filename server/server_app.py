@@ -16,7 +16,7 @@ class ServerApp:
 		return f'ServerApp({self.host}, {ServerApp.msg_lst})'
 
 	msg_id = itertools.count(1)
-	msg_id_final = itertools.count(1)
+	# msg_id_final = itertools.count(1)
 	msg_lst = {}
 
 
@@ -60,12 +60,10 @@ class ServerApp:
 				else:
 					# message_id = next(ServerApp.msg_id)
 					# ServerApp.msg_lst.update({message_id: f'{message}'})
-					prior_message_id = []
-					[]
 					# prior_message_id = (ServerApp.msg_id_final.__reduce__()[1][0]) + 1
-					servers_id = ServerApp.msg_id_final.__reduce__()[1][0]
-					prior_message_id = [servers_id + 1 if servers_id > 1 else servers_id]
-					logging.info(f'Your message is - {prior_message_id} - {message}')
+					# servers_id = ServerApp.msg_id_final.__reduce__()[1][0][0]
+					# prior_message_id = [servers_id + 1 if servers_id > 1 else servers_id]
+					logging.info(f'Your message is - {message}')
 					logging.info('Sending message to the client...')
 					for unique_conn in connections:
 						unique_conn.send(f'{message}'.encode())
@@ -78,12 +76,12 @@ class ServerApp:
 						try:
 							id_received = unique_conn.recv(1024).decode()
 							logging.info(f'Received ID from {number} node is {id_received}')
-							id_from_client = id_received.split().__getitem__(0)
-							if int(prior_message_id) == int(id_from_client):
-								logging.info(f'Replication to {number} node was performed successfully.')
-							else:
-								logging.info(f"Replication to {number} node has an error. Server's ID is {prior_message_id}, "
-											 f"while Client's ID is {id_from_client}")
+							# id_from_client = id_received.split().__getitem__(0)
+							# if int(prior_message_id) == int(id_from_client):
+							# 	logging.info(f'Replication to {number} node was performed successfully.')
+							# else:
+							# 	logging.info(f"Replication to {number} node has an error. Server's ID is {prior_message_id}, "
+							# 				 f"while Client's ID is {id_from_client}")
 							answer_count += 1
 						except socket.timeout as e:
 							logging.info(e)
@@ -93,7 +91,7 @@ class ServerApp:
 					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
-						ServerApp.msg_lst.update({next(ServerApp.msg_id_final): f'{message}'})
+						ServerApp.msg_lst.update({next(ServerApp.msg_id): f'{message}'})
 						for unique_conn in connections:
 							unique_conn.send(f'Approved'.encode())
 						logging.info('Successfully sent approval to clients...')
