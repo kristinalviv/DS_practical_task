@@ -62,7 +62,7 @@ class ServerApp:
 		# 	unique_conn.send(f'{message}'.encode())
 		logging.info(f'Write concern is {write_concern}.')
 		logging.info(f'Starting communication with client nodes...')
-		while retry <= max_retry:
+		while (retry <= max_retry) & (answer_count < write_concern):
 			try:
 				# answer_count = ServerApp().message_processing(connections, message)
 				for number, unique_conn in enumerate(connections, start=1):
@@ -71,8 +71,6 @@ class ServerApp:
 					id_received = unique_conn.recv(1024).decode()
 					logging.info(f'Received ID from {number} node is {id_received}')
 					answer_count += 1
-					if answer_count == write_concern:
-						break
 			except socket.timeout as e:
 				logging.info(e)
 				logging.info(f'Did not save this message. Timeout occurs!')
