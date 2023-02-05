@@ -63,7 +63,9 @@ class ServerApp:
 					answer_count = 0
 					logging.info(f'Write concern is {write_concern}.')
 					logging.info(f'Starting receiving answer from client nodes. Received answer is {answer_count}.')
-					print(socket.getdefaulttimeout())
+					retry = 1
+					max_retry = 2
+					#maybe it should be method
 					for number, unique_conn in enumerate(connections, start=1):
 						try:
 							id_received = unique_conn.recv(1024).decode()
@@ -75,6 +77,7 @@ class ServerApp:
 						except Exception as e:
 							logging.info(e)
 					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
+					#maybe it should be method
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
 						ServerApp.msg_lst.update({next(ServerApp.msg_id): f'{message}'})
@@ -83,6 +86,7 @@ class ServerApp:
 						logging.info('Successfully sent approval to clients...')
 					else:
 						logging.info('Write concern was NOT fulfilled. Message was not saved')
+						logging.info(f'Starting {retry} retry')
 			except Exception as e:
 				server_socket.close()
 				for unique_conn in connections:
