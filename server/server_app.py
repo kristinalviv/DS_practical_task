@@ -56,6 +56,7 @@ class ServerApp:
 	# 	return answer_count
 
 	def message_approval(self, connections, message, write_concern, max_retry):
+		answer_count = 0
 		retry = 0
 		# for unique_conn in connections:
 		# 	unique_conn.send(f'{message}'.encode())
@@ -63,7 +64,7 @@ class ServerApp:
 		logging.info(f'Starting communication with client nodes...')
 		while retry <= max_retry:
 			try:
-				answer_count = ServerApp().message_processing(connections, message)
+				# answer_count = ServerApp().message_processing(connections, message)
 				for number, unique_conn in enumerate(connections, start=1):
 					unique_conn.send(f'{message}'.encode())
 					logging.info(f'Successfully sent to {number} client')
