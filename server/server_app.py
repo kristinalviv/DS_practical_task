@@ -46,14 +46,14 @@ class ServerApp:
 			for unique_conn in connections:
 				unique_conn.close()
 
-	def message_processing(self, connections, message, answer_count=0):
-		for number, unique_conn in enumerate(connections, start=1):
-			unique_conn.send(f'{message}'.encode())
-			logging.info(f'Successfully sent to {number} client')
-			id_received = unique_conn.recv(1024).decode()
-			logging.info(f'Received ID from {number} node is {id_received}')
-			answer_count += 1
-			return answer_count
+	# def message_processing(self, connections, message, answer_count=0):
+	# 	for number, unique_conn in enumerate(connections, start=1):
+	# 		unique_conn.send(f'{message}'.encode())
+	# 		logging.info(f'Successfully sent to {number} client')
+	# 		id_received = unique_conn.recv(1024).decode()
+	# 		logging.info(f'Received ID from {number} node is {id_received}')
+	# 		answer_count += 1
+	# 	return answer_count
 
 	def message_approval(self, connections, message, write_concern, max_retry):
 		retry = 0
@@ -61,24 +61,24 @@ class ServerApp:
 		# 	unique_conn.send(f'{message}'.encode())
 		logging.info(f'Write concern is {write_concern}.')
 		logging.info(f'Starting communication with client nodes...')
-		try:
-			answer_count = ServerApp().message_processing(connections, message)
-			# for number, unique_conn in enumerate(connections, start=1):
-			# 	unique_conn.send(f'{message}'.encode())
-			# 	logging.info(f'Successfully sent to {number} client')
-			# 	id_received = unique_conn.recv(1024).decode()
-			# 	logging.info(f'Received ID from {number} node is {id_received}')
-		except socket.timeout as e:
-			logging.info(e)
-			logging.info(f'Did not save this message. Timeout occurs!')
-			retry += 1
-			print(f'Starting {retry} retry.')
-			print(f'Max retry is: {max_retry}')
-			print(retry < max_retry)
-			if retry <= max_retry:
+		while retry <= max_retry:
+			try:
 				answer_count = ServerApp().message_processing(connections, message)
-		except Exception as e:
-			logging.info(e)
+				for number, unique_conn in enumerate(connections, start=1):
+					unique_conn.send(f'{message}'.encode())
+					logging.info(f'Successfully sent to {number} client')
+					id_received = unique_conn.recv(1024).decode()
+					logging.info(f'Received ID from {number} node is {id_received}')
+					answer_count += 1
+			except socket.timeout as e:
+				logging.info(e)
+				logging.info(f'Did not save this message. Timeout occurs!')
+				retry += 1
+				print(f'Starting {retry} retry.')
+				print(f'Max retry is: {max_retry}')
+				print(retry < max_retry)
+			except Exception as e:
+				logging.info(e)
 		logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 		return answer_count
 
