@@ -46,11 +46,15 @@ class ServerApp:
 			for unique_conn in connections:
 				unique_conn.close()
 
-	def message_approval(self, connections, max_retry, answer_count=0):
+	def message_approval(self, connections, message, write_concern, max_retry, answer_count=0):
 		retry = 0
-		print("I'm here")
+		# for unique_conn in connections:
+		# 	unique_conn.send(f'{message}'.encode())
+		logging.info(f'Write concern is {write_concern}.')
+		logging.info(f'Starting communication with client nodes...')
 		for number, unique_conn in enumerate(connections, start=1):
-			print('for loop started')
+			unique_conn.send(f'{message}'.encode())
+			logging.info(f'Successfully sent to {number} client')
 			try:
 				id_received = unique_conn.recv(1024).decode()
 				logging.info(f'Received ID from {number} node is {id_received}')
@@ -69,8 +73,7 @@ class ServerApp:
 		logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 		return answer_count
 
-	def proceed_message(self, server_socket, connections, max_retry=2):
-		write_concern = 3
+	def proceed_message(self, server_socket, connections, write_concern=3, max_retry=2):
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
@@ -79,11 +82,11 @@ class ServerApp:
 				else:
 					logging.info(f'Your message is - {message}')
 					logging.info('Sending message to the client...')
-					for unique_conn in connections:
-						unique_conn.send(f'{message}'.encode())
-					logging.info('Successfully sent to clients...')
-					logging.info(f'Write concern is {write_concern}.')
-					logging.info(f'Starting receiving answer from client nodes...')
+					# for unique_conn in connections:
+					# 	unique_conn.send(f'{message}'.encode())
+					# logging.info('Successfully sent to clients...')
+					# logging.info(f'Write concern is {write_concern}.')
+					# logging.info(f'Starting receiving answer from client nodes...')
 					# maybe it should be method
 					# for number, unique_conn in enumerate(connections, start=1):
 					# 	try:
@@ -97,7 +100,7 @@ class ServerApp:
 					# 		logging.info(e)
 					# logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					# maybe it should be method
-					answer_count = ServerApp().message_approval(connections, max_retry)
+					answer_count = ServerApp().message_approval(connections, message, write_concern, max_retry)
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
 						ServerApp.msg_lst.update({next(ServerApp.msg_id): f'{message}'})
