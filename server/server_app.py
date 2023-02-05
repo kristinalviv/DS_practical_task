@@ -16,14 +16,12 @@ class ServerApp:
 		return f'ServerApp({self.host}, {ServerApp.msg_lst})'
 
 	msg_id = itertools.count(1)
-	# msg_id_final = itertools.count(1)
 	msg_lst = {}
 
 
 	def create_server_socket(self, port=4040):
 		try:
 			socket.setdefaulttimeout(20) # set 60 seconds timeout
-			print(socket.getdefaulttimeout())
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
 			print(f'Server connection is open on {self.host} with {port} port.')
@@ -36,7 +34,6 @@ class ServerApp:
 		try:
 			connections = []
 			server_socket.listen(listen_counts)
-			print(socket.getdefaulttimeout())
 			while listen_counts > 0:
 				conn, address = server_socket.accept()
 				listen_counts -= 1
@@ -58,11 +55,6 @@ class ServerApp:
 				if message in ['exit', 'end', 'quit', 'q']:
 					break
 				else:
-					# message_id = next(ServerApp.msg_id)
-					# ServerApp.msg_lst.update({message_id: f'{message}'})
-					# prior_message_id = (ServerApp.msg_id_final.__reduce__()[1][0]) + 1
-					# servers_id = ServerApp.msg_id_final.__reduce__()[1][0][0]
-					# prior_message_id = [servers_id + 1 if servers_id > 1 else servers_id]
 					logging.info(f'Your message is - {message}')
 					logging.info('Sending message to the client...')
 					for unique_conn in connections:
@@ -76,12 +68,6 @@ class ServerApp:
 						try:
 							id_received = unique_conn.recv(1024).decode()
 							logging.info(f'Received ID from {number} node is {id_received}')
-							# id_from_client = id_received.split().__getitem__(0)
-							# if int(prior_message_id) == int(id_from_client):
-							# 	logging.info(f'Replication to {number} node was performed successfully.')
-							# else:
-							# 	logging.info(f"Replication to {number} node has an error. Server's ID is {prior_message_id}, "
-							# 				 f"while Client's ID is {id_from_client}")
 							answer_count += 1
 						except socket.timeout as e:
 							logging.info(e)
