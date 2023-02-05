@@ -93,6 +93,7 @@ class ServerApp:
 					# 		logging.info(e)
 					# logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					# maybe it should be method
+					print(max_retry)
 					answer_count = ServerApp.message_approval(connections, max_retry)
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
