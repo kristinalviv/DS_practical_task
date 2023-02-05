@@ -66,8 +66,9 @@ class ServerApp:
 			logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 			return answer_count
 
-	def proceed_message(self, server_socket, connections, max_retry = 2):
+	def proceed_message(self, server_socket, connections):
 		write_concern = 3
+		max_retry = 2
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
