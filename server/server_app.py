@@ -1,6 +1,7 @@
 import socket
 import itertools
 import logging
+import copy
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
@@ -58,9 +59,10 @@ class ServerApp:
 				if message in ['exit', 'end', 'quit', 'q']:
 					break
 				else:
-					message_id = next(ServerApp.msg_id)
+					# message_id = next(ServerApp.msg_id)
 					# ServerApp.msg_lst.update({message_id: f'{message}'})
-					logging.info(f'Your message is - {message_id} - {message}')
+					prior_message_id = copy.copy(ServerApp.msg_id_final) + 1
+					logging.info(f'Your message is - {prior_message_id} - {message}')
 					logging.info('Sending message to the client...')
 					for unique_conn in connections:
 						unique_conn.send(f'{message}'.encode())
@@ -74,10 +76,10 @@ class ServerApp:
 							id_received = unique_conn.recv(1024).decode()
 							logging.info(f'Received ID from {number} node is {id_received}')
 							id_from_client = id_received.split().__getitem__(0)
-							if int(message_id) == int(id_from_client):
+							if int(prior_message_id) == int(id_from_client):
 								logging.info(f'Replication to {number} node was performed successfully.')
 							else:
-								logging.info(f"Replication to {number} node has an error. Server's ID is {message_id}, "
+								logging.info(f"Replication to {number} node has an error. Server's ID is {prior_message_id}, "
 											 f"while Client's ID is {id_from_client}")
 							answer_count += 1
 						except socket.timeout as e:
