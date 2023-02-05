@@ -95,7 +95,7 @@ class ServerApp:
 					# 		logging.info(e)
 					# logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
 					# maybe it should be method
-					answer_count = ServerApp.message_approval(socket, server_socket, connections)
+					answer_count = ServerApp.message_approval(server_socket, connections)
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
 						ServerApp.msg_lst.update({next(ServerApp.msg_id): f'{message}'})
