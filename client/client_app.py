@@ -26,7 +26,6 @@ class Client:
 
 	def create_connection(self, host, port):
 		try:
-			socket.setdefaulttimeout(20)
 			client_socket = socket.socket()
 			client_socket.connect((self.host, self.port))
 			return client_socket
@@ -55,18 +54,24 @@ class Client:
 				print('Successfully pre-saved message.')
 				logging.info(f'Client approved message! ID is: {cl_message_id}')
 				client_socket.send(f'{cl_message_id}'.encode())
-				final_approval = client_socket.recv(1024).decode()
 				try:
+					socket.setdefaulttimeout(20)
+					print(socket.getdefaulttimeout())
+					final_approval = client_socket.recv(1024).decode()
 					if final_approval == 'Approved':
 						print(f'Received {final_approval} message from the server.')
 						final_cl_message_id = next(Client.cl_msg_id_final)
 						Client.cl_msg_lst_final.update({final_cl_message_id: f'{server_message}'})
 						print(f'Message successfully saved')
+						socket.setdefaulttimeout(None)
+						print(socket.getdefaulttimeout())
 				except socket.timeout as e:
 					print('Turned message ID back since unsaved.')
 					print(Client.cl_msg_id.__reduce__()[1][0])
 					count = Client.cl_msg_id.__reduce__()[1][0] - 1
 					Client.cl_msg_id = itertools.count(count)
+					socket.setdefaulttimeout(None)
+					print(socket.getdefaulttimeout())
 
 
 		except Exception as e:
