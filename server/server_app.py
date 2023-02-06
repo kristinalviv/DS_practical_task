@@ -75,6 +75,7 @@ class ServerApp:
 				logging.info(e)
 				logging.info(f'Did not save this message. Timeout occurs!')
 				retry += 1
+				answer_count=0
 				print(f'Starting {retry} retry.')
 				print(f'Max retry is: {max_retry}')
 				print(retry < max_retry)

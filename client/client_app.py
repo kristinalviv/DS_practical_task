@@ -60,6 +60,10 @@ class Client:
 					final_cl_message_id = next(Client.cl_msg_id_final)
 					Client.cl_msg_lst_final.update({final_cl_message_id: f'{server_message}'})
 					print(f'Message successfully saved')
+				else:
+					print('Turned message ID back since unsaved.')
+					cl_message_id.__reduce__()[1][0][0] -= 1
+
 		except Exception as e:
 			client_socket.close()
 			print('Connection closed')
