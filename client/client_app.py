@@ -62,9 +62,7 @@ class Client:
 					print(f'Message successfully saved')
 				else:
 					print('Turned message ID back since unsaved.')
-					print(cl_message_id.__reduce__()[1][0][0])
-					int(cl_message_id.__reduce__()[1][0][0])-1
-					print(cl_message_id.__reduce__()[1][0][0]-1)
+					cl_message_id -= 1
 
 		except Exception as e:
 			client_socket.close()
