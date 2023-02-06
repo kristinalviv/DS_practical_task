@@ -63,7 +63,9 @@ class Client:
 				else:
 					print('Turned message ID back since unsaved.')
 					print(Client.cl_msg_id.__reduce__()[1][0])
-					Client.cl_msg_id = Client.cl_msg_id.__reduce__()[1][0] - 1
+					count = Client.cl_msg_id.__reduce__()[1][0] - 1
+					Client.cl_msg_id = itertools.count(count)
+
 
 		except Exception as e:
 			client_socket.close()
