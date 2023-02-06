@@ -65,6 +65,13 @@ class Client:
 						print(f'Message successfully saved')
 						socket.setdefaulttimeout(None)
 						print(socket.getdefaulttimeout())
+					else:
+						print('Turned message ID back since unsaved.')
+						print(Client.cl_msg_id.__reduce__()[1][0])
+						count = Client.cl_msg_id.__reduce__()[1][0] - 1
+						Client.cl_msg_id = itertools.count(count)
+						socket.setdefaulttimeout(None)
+						print(socket.getdefaulttimeout())
 				except socket.timeout as e:
 					print('Turned message ID back since unsaved.')
 					print(Client.cl_msg_id.__reduce__()[1][0])
