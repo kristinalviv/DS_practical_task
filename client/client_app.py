@@ -45,7 +45,7 @@ class Client:
 					print(e)
 				server_message = client_socket.recv(1024).decode()
 				max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=20)
-				if not server_message:
+				if not server_message or (datetime.now() > max_message_time):
 					logging.info('No message from the server side...')
 					break
 				print(f'Received from the server - {server_message}')
