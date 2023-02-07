@@ -56,7 +56,6 @@ class Client:
 				client_socket.send(f'{cl_message_id}'.encode())
 				try:
 					socket.setdefaulttimeout(20)
-					print(socket.getdefaulttimeout())
 					final_approval = client_socket.recv(1024).decode()
 					if final_approval == 'Approved':
 						print(f'Received {final_approval} message from the server.')
@@ -64,21 +63,16 @@ class Client:
 						Client.cl_msg_lst_final.update({final_cl_message_id: f'{server_message}'})
 						print(f'Message successfully saved')
 						socket.setdefaulttimeout(None)
-						print(socket.getdefaulttimeout())
 					else:
 						print('Turned message ID back since unsaved.')
-						print(Client.cl_msg_id.__reduce__()[1][0])
 						count = Client.cl_msg_id.__reduce__()[1][0] - 1
 						Client.cl_msg_id = itertools.count(count)
 						socket.setdefaulttimeout(None)
-						print(socket.getdefaulttimeout())
 				except socket.timeout as e:
 					print('Turned message ID back since unsaved.')
-					print(Client.cl_msg_id.__reduce__()[1][0])
 					count = Client.cl_msg_id.__reduce__()[1][0] - 1
 					Client.cl_msg_id = itertools.count(count)
 					socket.setdefaulttimeout(None)
-					print(socket.getdefaulttimeout())
 
 
 		except Exception as e:
