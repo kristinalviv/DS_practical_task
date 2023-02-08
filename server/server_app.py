@@ -16,14 +16,11 @@ class ServerApp:
 		return f'ServerApp({self.host}, {ServerApp.msg_lst})'
 
 	msg_id = itertools.count(1)
-	msg_id_final = itertools.count(1)
 	msg_lst = {}
-
 
 	def create_server_socket(self, port=4040):
 		try:
-			socket.setdefaulttimeout(20) # set 60 seconds timeout
-			print(socket.getdefaulttimeout())
+			socket.setdefaulttimeout(20)  # set 20 seconds timeout
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
 			print(f'Server connection is open on {self.host} with {port} port.')
@@ -36,7 +33,6 @@ class ServerApp:
 		try:
 			connections = []
 			server_socket.listen(listen_counts)
-			print(socket.getdefaulttimeout())
 			while listen_counts > 0:
 				conn, address = server_socket.accept()
 				listen_counts -= 1
@@ -50,45 +46,74 @@ class ServerApp:
 			for unique_conn in connections:
 				unique_conn.close()
 
-	def proceed_message(self, server_socket, connections):
-		write_concern = 3
+	# def message_processing(self, connections, message, answer_count=0):
+	# 	for number, unique_conn in enumerate(connections, start=1):
+	# 		unique_conn.send(f'{message}'.encode())
+	# 		logging.info(f'Successfully sent to {number} client')
+	# 		id_received = unique_conn.recv(1024).decode()
+	# 		logging.info(f'Received ID from {number} node is {id_received}')
+	# 		answer_count += 1
+	# 	return answer_count
+
+	def message_approval(self, connections, message, write_concern, max_retry):
+		answer_count = 0
+		retry = 0
+		# for unique_conn in connections:
+		# 	unique_conn.send(f'{message}'.encode())
+		logging.info(f'Write concern is {write_concern}.')
+		logging.info(f'Starting communication with client nodes...')
+		while (retry <= max_retry) & (answer_count < write_concern):
+			try:
+				# answer_count = ServerApp().message_processing(connections, message)
+				for number, unique_conn in enumerate(connections, start=1):
+					unique_conn.send(f'{message}'.encode())
+					logging.info(f'Successfully sent to {number} client')
+					id_received = unique_conn.recv(1024).decode()
+					logging.info(f'Received ID from {number} node is {id_received}')
+					answer_count += 1
+			except socket.timeout as e:
+				logging.info(e)
+				logging.info(f'Did not save this message. Timeout occurs!')
+				retry += 1
+				answer_count=0
+				print(f'Starting {retry} retry.')
+				print(f'Max retry is: {max_retry}')
+			except Exception as e:
+				logging.info(e)
+		logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
+		return answer_count
+
+	def proceed_message(self, server_socket, connections, write_concern=3, max_retry=2):
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
 				if message in ['exit', 'end', 'quit', 'q']:
 					break
 				else:
-					message_id = next(ServerApp.msg_id)
-					# ServerApp.msg_lst.update({message_id: f'{message}'})
-					logging.info(f'Your message is - {message_id} - {message}')
+					logging.info(f'Your message is - {message}')
 					logging.info('Sending message to the client...')
-					for unique_conn in connections:
-						unique_conn.send(f'{message}'.encode())
-					logging.info('Successfully sent to clients...')
-					answer_count = 0
-					logging.info(f'Write concern is {write_concern}.')
-					logging.info(f'Starting receiving answer from client nodes. Received answer is {answer_count}.')
-					print(socket.getdefaulttimeout())
-					for number, unique_conn in enumerate(connections, start=1):
-						try:
-							id_received = unique_conn.recv(1024).decode()
-							logging.info(f'Received ID from {number} node is {id_received}')
-							id_from_client = id_received.split().__getitem__(0)
-							if int(message_id) == int(id_from_client):
-								logging.info(f'Replication to {number} node was performed successfully.')
-							else:
-								logging.info(f"Replication to {number} node has an error. Server's ID is {message_id}, "
-											 f"while Client's ID is {id_from_client}")
-							answer_count += 1
-						except socket.timeout as e:
-							logging.info(e)
-							logging.info(f'Did not save this message. Timeout occurs!')
-						except Exception as e:
-							logging.info(e)
-					logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
+					# for unique_conn in connections:
+					# 	unique_conn.send(f'{message}'.encode())
+					# logging.info('Successfully sent to clients...')
+					# logging.info(f'Write concern is {write_concern}.')
+					# logging.info(f'Starting receiving answer from client nodes...')
+					# maybe it should be method
+					# for number, unique_conn in enumerate(connections, start=1):
+					# 	try:
+					# 		id_received = unique_conn.recv(1024).decode()
+					# 		logging.info(f'Received ID from {number} node is {id_received}')
+					# 		answer_count += 1
+					# 	except socket.timeout as e:
+					# 		logging.info(e)
+					# 		logging.info(f'Did not save this message. Timeout occurs!')
+					# 	except Exception as e:
+					# 		logging.info(e)
+					# logging.info(f'Finished, received answer(s) is (are) {answer_count}.')
+					# maybe it should be method
+					answer_count = ServerApp().message_approval(connections, message, write_concern, max_retry)
 					if answer_count >= write_concern:
 						logging.info('Write concern fulfilled. ')
-						ServerApp.msg_lst.update({next(ServerApp.msg_id_final): f'{message}'})
+						ServerApp.msg_lst.update({next(ServerApp.msg_id): f'{message}'})
 						for unique_conn in connections:
 							unique_conn.send(f'Approved'.encode())
 						logging.info('Successfully sent approval to clients...')
