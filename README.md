@@ -49,6 +49,7 @@ To restore connection with client node enter command (docker network connect NET
 
 Following message will be saved.
 
+8. Retry logic is added.
 
 
 *Connection successfully established and messages can be written to the server.*
