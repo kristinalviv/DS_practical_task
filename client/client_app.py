@@ -43,7 +43,7 @@ class Client:
 						print(client.get_messages())
 				except Exception as e:
 					print(e)
-				max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=60)
+				max_message_time = datetime.now() + timedelta(hours=0, minutes=2, seconds=00)
 				print(max_message_time)
 				server_message = client_socket.recv(1024).decode()
 				message_time = datetime.now()
