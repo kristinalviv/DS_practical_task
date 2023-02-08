@@ -39,21 +39,19 @@ class Client:
 			while True:
 				try:
 					input_value = inputimeout(prompt='If you want to view all messages, type "List" here.. ', timeout=5)
+					max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=60)
 					if input_value == 'List()':
 						print(client.get_messages())
 				except Exception as e:
 					print(e)
 				server_message = client_socket.recv(1024).decode()
-				max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=60)
-				print(max_message_time)
+				message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=60)
 				if not server_message:
 					logging.info('No message from the server side...')
 					break
-				elif datetime.now() > max_message_time:
+				elif message_time > max_message_time:
 					logging.info('Received old message(-s). Skipping it...')
 					break
-				print(max_message_time)
-				print(datetime.now())
 				print(f'Received from the server - {server_message}')
 				cl_message_id = next(Client.cl_msg_id)
 				Client.cl_msg_lst.update({cl_message_id: f'{server_message}'})
