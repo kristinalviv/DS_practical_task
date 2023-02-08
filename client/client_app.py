@@ -44,12 +44,17 @@ class Client:
 				except Exception as e:
 					print(e)
 				server_message = client_socket.recv(1024).decode()
-				max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=20)
-				if not server_message or (datetime.now() > max_message_time):
+				max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=60)
+				print(max_message_time)
+				if not server_message:
 					logging.info('No message from the server side...')
 					break
+				elif datetime.now() > max_message_time:
+					logging.info('Received old message(-s). Skipping it...')
+					break
+				print(max_message_time)
+				print(datetime.now())
 				print(f'Received from the server - {server_message}')
-				message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=60)
 				cl_message_id = next(Client.cl_msg_id)
 				Client.cl_msg_lst.update({cl_message_id: f'{server_message}'})
 				print('Successfully pre-saved message.')
@@ -63,11 +68,6 @@ class Client:
 						final_cl_message_id = next(Client.cl_msg_id_final)
 						Client.cl_msg_lst_final.update({final_cl_message_id: f'{server_message}'})
 						print(f'Message successfully saved')
-						socket.setdefaulttimeout(None)
-					elif datetime.now() > message_time:
-						print('Turned message ID back since unsaved.')
-						count = Client.cl_msg_id.__reduce__()[1][0] - 1
-						Client.cl_msg_id = itertools.count(count)
 						socket.setdefaulttimeout(None)
 					else:
 						print('Turned message ID back since unsaved.')
