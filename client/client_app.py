@@ -37,9 +37,9 @@ class Client:
 	def client_app(self, client_socket):
 		try:
 			while True:
+				max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=60)
 				try:
 					input_value = inputimeout(prompt='If you want to view all messages, type "List" here.. ', timeout=5)
-					max_message_time = datetime.now() + timedelta(hours=0, minutes=0, seconds=60)
 					print(max_message_time)
 					if input_value == 'List()':
 						print(client.get_messages())
