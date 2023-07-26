@@ -1,6 +1,9 @@
 import socket
 import logging
+import asyncio
 from datetime import datetime
+import json
+import itertools
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
@@ -10,10 +13,10 @@ class ServerApp:
 		self.host = socket.gethostbyname('server')
 
 	def __str__(self):
-		return f'Server on {self.host} contain following messages: {ServerApp.msg_lst}.'
+		return f'Server on {self.host} contain following messages: {self.msg_lst}.'
 
 	def __repr__(self):
-		return f'ServerApp({self.host}, {ServerApp.msg_lst})'
+		return f'ServerApp({self.host}, {self.msg_lst})'
 
 	def __aiter__(self, co):
 		return self
@@ -26,7 +29,7 @@ class ServerApp:
 			socket.setdefaulttimeout(20)
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
-			print(f'Server connection is open on {self.host} with {port} port.')
+			logging.info(f'Server connection is open on {self.host} with {port} port.')
 			return server_socket
 		except Exception as e:
 			print(e)
@@ -36,13 +39,12 @@ class ServerApp:
 		try:
 			connections = []
 			server_socket.listen(listen_counts)
-			print(socket.getdefaulttimeout())
 			while listen_counts > 0:
 				conn, address = server_socket.accept()
 				listen_counts -= 1
 				connections.append(conn)
-				print(f'Address of connected replica: {str(address)}')
-				print(connections)
+				logging.info(f'Address of connected replica: {str(address)}')
+				logging.info(connections)
 			return connections, address, listen_counts
 		except Exception as e:
 			print(e)
@@ -50,8 +52,68 @@ class ServerApp:
 			for unique_conn in connections:
 				unique_conn.close()
 
+	async def send_message(self, conn, message, message_id):
+		logging.info('Sending message to the client...')
+		conn.send(f'{str(message_id)}-{message}'.encode())
+		logging.info('Sent, date=%s:', datetime.now())
+
+	def error_handling(self, connections):
+		for conn in connections:
+			conn.settimeout(5)
+			print(conn)
+			try:
+				data = conn.recv(1024).decode()
+				if not data:
+					pass
+				elif data == 'ERROR':
+					print(self.msg_lst)
+					# conn.send(self.msg_lst.encode())
+					conn.send(json.dumps(self.msg_lst).encode())
+				conn.settimeout(20)
+			except socket.timeout as e:
+				print('no error')
+				conn.settimeout(20.0)
+
+	async def receive_response(self, conn):  # , answer_count, write_concern
+		try:
+			response = conn.recv(1024).decode()
+			logging.info(f'Received response: {response}, date=%s', datetime.now())
+			if response == 'Replicated':
+				logging.info(f'Successfully replicated. ')  # Response count is {answer_count}
+			elif response == 'ERROR':
+				print(self.msg_lst)
+				conn.send(self.msg_lst.encode())
+			else:
+				logging.info(f'Message was not saved')
+			return 1
+		except socket.timeout as e:
+			print(f'{conn} is dead')
+
+	async def main(self, connections, message, message_id, answer_count, write_concern):
+		logging.info(f'Sending message to the client nodes.')
+		try:
+			for number, unique_conn in enumerate(connections, start=1):
+				task = asyncio.create_task(self.send_message(unique_conn, message, message_id))
+				await task
+				logging.info(f'Sent message to {number} node - date=%s', datetime.now())
+			cors = [self.receive_response(unique_conn) for unique_conn in connections]
+			print(cors)
+			for cor in itertools.islice(cors, write_concern):
+				print(cor)
+				res = await cor
+				answer_count += 1
+			cors = cors[write_concern:]
+			print('new cors: ', cors)
+			for cor in cors:
+				asyncio.create_task(cor).cancel()
+			return answer_count
+		except Exception as e:
+			print(e)
+			for unique_conn in connections:
+				unique_conn.close()
+
 	def proceed_message(self, server_socket, connections):
-		write_concern = 3
+		write_concern = 1
 		while True:
 			try:
 				message = input('Please enter your message here...:)')
@@ -60,44 +122,36 @@ class ServerApp:
 				else:
 					self.msg_id += 1
 					message_id = self.msg_id
-					success_repl = 0
 					logging.info(f'Your message is - {message_id} - {message}')
-					logging.info('Sending message to the client...')
-					try:
-						for unique_conn in connections:
-							unique_conn.send(f'{message_id}-{message}'.encode())
-						logging.info('Successfully sent to clients...')
-						for number, unique_conn in enumerate(connections, start=1):
-							response = unique_conn.recv(1024).decode()
-							logging.info(f'Received from {number} node response: {response}')
-							if response == 'Replicated':
-								success_repl += 1
-								print(f'Successfully replicated.')
-							else:
-								logging.info(f'Replication error, received following response:{response}.')
-						if success_repl == write_concern:
-							logging.info('Write concern fulfilled - date=%s', datetime.now())
-							self.msg_lst.update({message_id: f"{message}"})
-							logging.info(f'Replication to {success_repl} nodes was performed successfully.')
-						elif success_repl < write_concern:
-							logging.info(f"Write concern was NOT fulfilled.")
-							self.msg_id -= 1
-						logging.info(f'Write concern is {write_concern}.')
-					except socket.timeout as e:
-						message_id -= 1
-						logging.info(e)
-						logging.info(f'Did not save this message. Timeout occurs!')
-					except Exception as e:
-						message_id -= 1
-						logging.info(f'Did not save this message. {e}')
+					answer_count = 0
+					logging.info(f'Write concern is {write_concern}.')
+					answer_count_res = asyncio.run(
+						self.main(connections, message, message_id, answer_count, write_concern))
+					if answer_count_res >= write_concern:
+						logging.info('Write concern fulfilled - date=%s', datetime.now())
+						self.msg_lst.update({message_id: f"{message}"})
+						logging.info(f'Replication to {answer_count_res} nodes was performed successfully.')
+					elif answer_count_res < write_concern:
+						logging.info(f"Write concern was not fulfilled.")
+						self.msg_id -= 1
+					self.error_handling(connections)
+			except socket.timeout as e:
+				message_id -= 1
+				logging.info(e)
+				logging.info(f'Did not save this message. Timeout occurs!')
+				for unique_conn in connections:
+					unique_conn.close()
+				logging.info('Connection closed')
 			except Exception as e:
 				message_id -= 1
+				logging.info(f'Did not save this message. {e}')
 				server_socket.close()
 				for unique_conn in connections:
 					unique_conn.close()
-				print('Connection closed')
-				print(f'Could not save your message, {e}')
+				logging.info('Connection closed')
 
+	def get_messages(self):
+		return self.msg_lst
 
 
 if __name__ == "__main__":
@@ -105,8 +159,8 @@ if __name__ == "__main__":
 	server_socket = server.create_server_socket()
 	connections, address, listen_counts = server.connect_to_replicas(server_socket)
 	server.proceed_message(server_socket, connections)
-	print(server.__str__())
+	logging.info(server.get_messages())
 	server_socket.close()
 	for unique_conn in connections:
 		unique_conn.close()
-	print('Connection closed')
+	logging.info('Connection closed')
