@@ -57,56 +57,72 @@ class ServerApp:
 		conn.send(f'{str(message_id)}-{message}'.encode())
 		logging.info('Sent, date=%s:', datetime.now())
 
-	def error_handling(self, connections):
-		for conn in connections:
-			conn.settimeout(5)
-			print(conn)
-			try:
-				data = conn.recv(1024).decode()
-				if not data:
-					pass
-				elif data == 'ERROR':
-					print(self.msg_lst)
-					# conn.send(self.msg_lst.encode())
-					conn.send(json.dumps(self.msg_lst).encode())
-				conn.settimeout(20)
-			except socket.timeout as e:
-				print('no error')
-				conn.settimeout(20.0)
-
-	async def receive_response(self, conn):  # , answer_count, write_concern
+	async def error_handling(self, conn):
 		try:
+			conn.settimeout(3)
 			response = conn.recv(1024).decode()
+			response = response[-4:]
 			logging.info(f'Received response: {response}, date=%s', datetime.now())
-			if response == 'Replicated':
-				logging.info(f'Successfully replicated. ')  # Response count is {answer_count}
-			elif response == 'ERROR':
-				print(self.msg_lst)
-				conn.send(self.msg_lst.encode())
-			else:
-				logging.info(f'Message was not saved')
-			return 1
+			if response == 'FAIL':
+				logging.info(f'{conn}, has inconsistency')
+				servers_list = self.msg_lst
+				conn.send(f'{json.dumps(servers_list)}'.encode())
+				logging.info('Removed inconsistency')
+				conn.settimeout(20)
 		except socket.timeout as e:
 			print(f'{conn} is dead')
+			conn.settimeout(20.0)
+
+	async def remove_inconsistency(self, connections):
+		tasks = []
+		for unique_conn in connections:
+			task = asyncio.create_task(self.error_handling(unique_conn))
+			tasks.append(task)
+		await asyncio.gather(*tasks, return_exceptions=True)
+		logging.info(f'Data is consistent')
+
+
+
+	async def receive_response(self, conn):
+		try:
+			response = conn.recv(1024).decode()
+			response = response[-4:]
+			logging.info(f'Received response: {response}, date=%s', datetime.now())
+			if response == 'PASS':
+				logging.info(f'Successfully replicated. ')
+			else:
+				logging.info(f'Message was not saved to {conn}')
+			return response
+		except socket.timeout as e:
+			print(f'{conn} is dead')
+			return 'error'
 
 	async def main(self, connections, message, message_id, answer_count, write_concern):
 		logging.info(f'Sending message to the client nodes.')
 		try:
+			tasks = []
 			for number, unique_conn in enumerate(connections, start=1):
 				task = asyncio.create_task(self.send_message(unique_conn, message, message_id))
-				await task
-				logging.info(f'Sent message to {number} node - date=%s', datetime.now())
+				tasks.append(task)
+			await asyncio.gather(*tasks, return_exceptions=True)
+			logging.info(f'Sent message to all nodes - date=%s', datetime.now())
 			cors = [self.receive_response(unique_conn) for unique_conn in connections]
 			print(cors)
-			for cor in itertools.islice(cors, write_concern):
-				print(cor)
-				res = await cor
-				answer_count += 1
-			cors = cors[write_concern:]
-			print('new cors: ', cors)
 			for cor in cors:
-				asyncio.create_task(cor).cancel()
+				print(cor)
+				if answer_count >= write_concern:
+					rest = cors[answer_count:]
+					for task in rest:
+						asyncio.create_task(task).cancel()
+					break
+				else:
+					res = await cor
+					if res == 'PASS':
+						answer_count += 1
+					else:
+						continue
 			return answer_count
+
 		except Exception as e:
 			print(e)
 			for unique_conn in connections:
@@ -134,7 +150,7 @@ class ServerApp:
 					elif answer_count_res < write_concern:
 						logging.info(f"Write concern was not fulfilled.")
 						self.msg_id -= 1
-					self.error_handling(connections)
+					asyncio.run(self.remove_inconsistency(connections))
 			except socket.timeout as e:
 				message_id -= 1
 				logging.info(e)

@@ -1,7 +1,6 @@
 import socket
 import logging
 import json
-from datetime import datetime, timedelta
 from inputimeout import inputimeout
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
@@ -21,6 +20,7 @@ class Client:
 	cl_msg_ids = set()
 	cl_msg_lst = {}
 
+
 	def create_connection(self, host, port):
 		try:
 			client_socket = socket.socket()
@@ -33,19 +33,27 @@ class Client:
 
 	def sync(self, client_socket):
 		while True:
-			print('Before: ', self.cl_msg_lst)
-			client_socket.send('ERROR'.encode())
-			accurate_messages = json.loads(client_socket.recv(1024).decode())
-			print(accurate_messages)
-			if accurate_messages.__contains__('-'):
-				continue
-			else:
-				print(accurate_messages, len(accurate_messages), len(self.cl_msg_lst))
-				if len(accurate_messages) > len(self.cl_msg_lst):
+			try:
+				client_socket.settimeout(3.0)
+				print('Before: ', self.cl_msg_lst)
+				client_socket.send('FAIL'.encode())  # update to PASS FAIL
+				resp = client_socket.recv(1024)
+				print(resp)
+				message = resp.decode()
+				print(message)
+				if message.__contains__('-'):
 					continue
 				else:
-					self.cl_msg_lst.update(dict(accurate_messages))
+					messages = json.loads(message)
+					accurate_messages = {int(k): v for k, v in messages.items()}
+					print(accurate_messages)
+					self.cl_msg_lst = accurate_messages
+					self.cl_msg_ids = set([k for k in accurate_messages.keys()])
 					print('After: ', self.cl_msg_lst)
+					break
+			except socket.timeout as e:
+				continue
+		client_socket.settimeout(20.0)
 
 	def client_app(self, client_socket):
 		try:
@@ -67,11 +75,11 @@ class Client:
 				if (self.cl_msg_lst.__len__() == 0) & (self.cl_msg_ids.__len__() == 0):
 					self.cl_msg_lst.update({message_id: message})
 					self.cl_msg_ids.add(message_id)  # per deduplication
-					client_socket.send('Replicated'.encode())
+					client_socket.send('PASS'.encode())
 				elif message_id not in self.cl_msg_ids and (message_id == max(self.cl_msg_ids) + 1):  # total ordering
 					self.cl_msg_lst.update({message_id: message})
 					self.cl_msg_ids.add(message_id)  # per deduplication
-					client_socket.send('Replicated'.encode())
+					client_socket.send('PASS'.encode())
 				else:
 					logging.info('Inconsistency found...')
 					self.sync(client_socket)
