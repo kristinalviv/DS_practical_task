@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime
 import json
 import itertools
+from retrying import retry
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
@@ -26,7 +27,7 @@ class ServerApp:
 
 	def create_server_socket(self, port=4040):
 		try:
-			socket.setdefaulttimeout(20)
+			# socket.setdefaulttimeout(20)
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
 			logging.info(f'Server connection is open on {self.host} with {port} port.')
@@ -59,7 +60,7 @@ class ServerApp:
 
 	async def error_handling(self, conn):
 		try:
-			conn.settimeout(3)
+			conn.settimeout(2)
 			response = conn.recv(1024).decode()
 			response = response[-4:]
 			logging.info(f'Received response: {response}, date=%s', datetime.now())
@@ -68,10 +69,10 @@ class ServerApp:
 				servers_list = self.msg_lst
 				conn.send(f'{json.dumps(servers_list)}'.encode())
 				logging.info('Removed inconsistency')
-				conn.settimeout(20)
+				# conn.settimeout(20)
 		except socket.timeout as e:
-			print(f'{conn} is dead')
-			conn.settimeout(20.0)
+			print(f'{conn} - no errors')
+			# conn.settimeout(20.0)
 
 	async def remove_inconsistency(self, connections):
 		tasks = []
@@ -81,6 +82,24 @@ class ServerApp:
 		await asyncio.gather(*tasks, return_exceptions=True)
 		logging.info(f'Data is consistent')
 
+	def retry_if_result_none(result):
+		"""Return True if we should retry (in this case when result equals 0), False otherwise"""
+		return result == 0
+
+	@retry(wait_exponential_multiplier=1000, wait_exponential_max=5000, stop_max_attempt_number=2, retry_on_result=retry_if_result_none)
+	def retry(self, conn):
+		try:
+			response = conn.recv(1024).decode()
+			response = response[-4:]
+			logging.info(f'Received response: {response}, date=%s', datetime.now())
+			if response == 'PASS':
+				logging.info(f'Successfully replicated. ')
+			else:
+				logging.info(f'Message was not saved to {conn}')
+			return response
+		except socket.timeout as e:
+			logging.info('date=%s, conn=%s is dead again', datetime.now(), f'{conn}')
+			return 0
 
 
 	async def receive_response(self, conn):
@@ -95,7 +114,7 @@ class ServerApp:
 			return response
 		except socket.timeout as e:
 			print(f'{conn} is dead')
-			return 'error'
+			return conn
 
 	async def main(self, connections, message, message_id, answer_count, write_concern):
 		logging.info(f'Sending message to the client nodes.')
@@ -108,7 +127,8 @@ class ServerApp:
 			logging.info(f'Sent message to all nodes - date=%s', datetime.now())
 			cors = [self.receive_response(unique_conn) for unique_conn in connections]
 			print(cors)
-			for cor in cors:
+			failed_cors = []
+			for num, cor in enumerate(cors, start=0):
 				print(cor)
 				if answer_count >= write_concern:
 					rest = cors[answer_count:]
@@ -120,7 +140,17 @@ class ServerApp:
 					if res == 'PASS':
 						answer_count += 1
 					else:
+						failed_cors.append(num)
 						continue
+			print(f'successful answer count is {answer_count}, write concern is {write_concern}')
+			failed_conn = []
+			[failed_conn.append(connections[number]) for number in failed_cors]
+			print(f'failed conn -  {failed_conn}')
+			while answer_count < write_concern:
+				for con in failed_conn:
+					result = self.retry(con)
+					if result == 'PASS':
+						answer_count += 1
 			return answer_count
 
 		except Exception as e:
@@ -129,13 +159,14 @@ class ServerApp:
 				unique_conn.close()
 
 	def proceed_message(self, server_socket, connections):
-		write_concern = 1
 		while True:
 			try:
-				message = input('Please enter your message here...:)')
-				if message in ['exit', 'end', 'quit', 'q']:
+				message_data = input('Please enter your message here...:)')
+				if message_data in ['exit', 'end', 'quit', 'q']:
 					break
 				else:
+					write_concern = int(message_data[0])
+					message = message_data[2:]
 					self.msg_id += 1
 					message_id = self.msg_id
 					logging.info(f'Your message is - {message_id} - {message}')
@@ -171,6 +202,7 @@ class ServerApp:
 
 
 if __name__ == "__main__":
+	print(retry)
 	server = ServerApp()
 	server_socket = server.create_server_socket()
 	connections, address, listen_counts = server.connect_to_replicas(server_socket)

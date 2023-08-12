@@ -36,7 +36,7 @@ class Client:
 			try:
 				client_socket.settimeout(3.0)
 				print('Before: ', self.cl_msg_lst)
-				client_socket.send('FAIL'.encode())  # update to PASS FAIL
+				client_socket.send('FAIL'.encode())
 				resp = client_socket.recv(1024)
 				print(resp)
 				message = resp.decode()
