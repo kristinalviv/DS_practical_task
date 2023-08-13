@@ -193,7 +193,7 @@ class ServerApp:
 						loop = asyncio.new_event_loop()
 						retry_task = loop.create_task(self.proceed_with_retry(retry, answer_count_res, write_concern))
 						print('background task started')
-						loop.run_until_complete(retry_task)
+						loop.run_until_complete(retry_task) #uncomment in case more than one client connection is needed
 					if retry is None:
 						if answer_count_res >= write_concern:
 							logging.info('Write concern fulfilled - date=%s', datetime.now())
