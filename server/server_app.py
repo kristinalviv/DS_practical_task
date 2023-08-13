@@ -3,8 +3,7 @@ import logging
 import asyncio
 from datetime import datetime
 import json
-import itertools
-from retrying import retry
+from retrying import retry, RetryError
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s--%(levelname)s--%(message)s')
 
@@ -27,7 +26,6 @@ class ServerApp:
 
 	def create_server_socket(self, port=4040):
 		try:
-			# socket.setdefaulttimeout(20)
 			server_socket = socket.socket()
 			server_socket.bind((self.host, port))
 			logging.info(f'Server connection is open on {self.host} with {port} port.')
@@ -54,13 +52,12 @@ class ServerApp:
 				unique_conn.close()
 
 	async def send_message(self, conn, message, message_id):
-		logging.info('Sending message to the client...')
 		conn.send(f'{str(message_id)}-{message}'.encode())
 		logging.info('Sent, date=%s:', datetime.now())
 
 	async def error_handling(self, conn):
 		try:
-			conn.settimeout(2)
+			conn.settimeout(3)
 			response = conn.recv(1024).decode()
 			response = response[-4:]
 			logging.info(f'Received response: {response}, date=%s', datetime.now())
@@ -69,10 +66,8 @@ class ServerApp:
 				servers_list = self.msg_lst
 				conn.send(f'{json.dumps(servers_list)}'.encode())
 				logging.info('Removed inconsistency')
-				# conn.settimeout(20)
 		except socket.timeout as e:
 			print(f'{conn} - no errors')
-			# conn.settimeout(20.0)
 
 	async def remove_inconsistency(self, connections):
 		tasks = []
@@ -83,23 +78,48 @@ class ServerApp:
 		logging.info(f'Data is consistent')
 
 	def retry_if_result_none(result):
-		"""Return True if we should retry (in this case when result equals 0), False otherwise"""
+		"""Return True if retry is needed (in this case result equals 0), False otherwise"""
 		return result == 0
 
-	@retry(wait_exponential_multiplier=1000, wait_exponential_max=5000, stop_max_attempt_number=2, retry_on_result=retry_if_result_none)
+	@retry(wait_exponential_multiplier=1000, wait_exponential_max=5000, stop_max_attempt_number=5, retry_on_result=retry_if_result_none)
 	def retry(self, conn):
 		try:
 			response = conn.recv(1024).decode()
 			response = response[-4:]
 			logging.info(f'Received response: {response}, date=%s', datetime.now())
 			if response == 'PASS':
-				logging.info(f'Successfully replicated. ')
+				# logging.info(f'Successfully replicated. ')
+				return response
 			else:
 				logging.info(f'Message was not saved to {conn}')
 			return response
-		except socket.timeout as e:
-			logging.info('date=%s, conn=%s is dead again', datetime.now(), f'{conn}')
+		except socket.timeout as s:
+			logging.info('conn=%s is dead again', f'{conn}')
 			return 0
+		except RetryError as re:
+			logging.info('error=%s', f'{re}')
+		except Exception as e:
+			logging.info('RetryError')
+
+
+	async def proceed_with_retry(self, conns, answer_count, write_concern):
+		try:
+			for con in conns:
+				result = self.retry(con)
+				print('result', result)
+				print('answer_count', answer_count)
+				if result == 'PASS':
+					answer_count += 1
+				if answer_count >= write_concern:
+					logging.info('Write concern fulfilled - date=%s', datetime.now())
+					logging.info(f'Replication to {answer_count} nodes was performed successfully.')
+				elif answer_count < write_concern:
+					logging.info(f"Write concern was not fulfilled.")
+					print('msg_id', self.msg_id)
+					del self.msg_lst[self.msg_id]
+					self.msg_id -= 1
+		except RetryError as re:
+			logging.info('error=%s', f'{re}')
 
 
 	async def receive_response(self, conn):
@@ -124,12 +144,9 @@ class ServerApp:
 				task = asyncio.create_task(self.send_message(unique_conn, message, message_id))
 				tasks.append(task)
 			await asyncio.gather(*tasks, return_exceptions=True)
-			logging.info(f'Sent message to all nodes - date=%s', datetime.now())
 			cors = [self.receive_response(unique_conn) for unique_conn in connections]
-			print(cors)
 			failed_cors = []
 			for num, cor in enumerate(cors, start=0):
-				print(cor)
 				if answer_count >= write_concern:
 					rest = cors[answer_count:]
 					for task in rest:
@@ -143,16 +160,12 @@ class ServerApp:
 						failed_cors.append(num)
 						continue
 			print(f'successful answer count is {answer_count}, write concern is {write_concern}')
-			failed_conn = []
-			[failed_conn.append(connections[number]) for number in failed_cors]
-			print(f'failed conn -  {failed_conn}')
-			while answer_count < write_concern:
-				for con in failed_conn:
-					result = self.retry(con)
-					if result == 'PASS':
-						answer_count += 1
-			return answer_count
-
+			retry = []
+			[retry.append(connections[number]) for number in failed_cors]
+			if retry:
+				return answer_count, retry
+			else:
+				return answer_count, None
 		except Exception as e:
 			print(e)
 			for unique_conn in connections:
@@ -169,28 +182,36 @@ class ServerApp:
 					message = message_data[2:]
 					self.msg_id += 1
 					message_id = self.msg_id
+					self.msg_lst.update({message_id: f"{message}"})
 					logging.info(f'Your message is - {message_id} - {message}')
 					answer_count = 0
 					logging.info(f'Write concern is {write_concern}.')
-					answer_count_res = asyncio.run(
+					answer_count_res, retry = asyncio.run(
 						self.main(connections, message, message_id, answer_count, write_concern))
-					if answer_count_res >= write_concern:
-						logging.info('Write concern fulfilled - date=%s', datetime.now())
-						self.msg_lst.update({message_id: f"{message}"})
-						logging.info(f'Replication to {answer_count_res} nodes was performed successfully.')
-					elif answer_count_res < write_concern:
-						logging.info(f"Write concern was not fulfilled.")
-						self.msg_id -= 1
-					asyncio.run(self.remove_inconsistency(connections))
+					if retry:
+						print('retry', retry)
+						loop = asyncio.new_event_loop()
+						retry_task = loop.create_task(self.proceed_with_retry(retry, answer_count_res, write_concern))
+						print('background task started')
+						loop.run_until_complete(retry_task)
+					if retry is None:
+						if answer_count_res >= write_concern:
+							logging.info('Write concern fulfilled - date=%s', datetime.now())
+							logging.info(f'Replication to {answer_count_res} nodes was performed successfully.')
+						elif answer_count_res < write_concern:
+							logging.info(f"Write concern was not fulfilled.")
+							del self.msg_lst[self.msg_id]
+							self.msg_id -= 1
+						asyncio.run(self.remove_inconsistency(connections))
 			except socket.timeout as e:
-				message_id -= 1
+				self.msg_id -= 1
 				logging.info(e)
 				logging.info(f'Did not save this message. Timeout occurs!')
 				for unique_conn in connections:
 					unique_conn.close()
 				logging.info('Connection closed')
 			except Exception as e:
-				message_id -= 1
+				self.msg_id -= 1
 				logging.info(f'Did not save this message. {e}')
 				server_socket.close()
 				for unique_conn in connections:
@@ -202,7 +223,6 @@ class ServerApp:
 
 
 if __name__ == "__main__":
-	print(retry)
 	server = ServerApp()
 	server_socket = server.create_server_socket()
 	connections, address, listen_counts = server.connect_to_replicas(server_socket)

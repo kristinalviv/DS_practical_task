@@ -21,7 +21,7 @@ class Client:
 	cl_msg_lst = {}
 
 
-	def create_connection(self, host, port):
+	def create_connection(self):
 		try:
 			client_socket = socket.socket()
 			client_socket.connect((self.host, self.port))
